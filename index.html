@@ -58,7 +58,7 @@ td select{padding:7px;font-size:14px;margin:0}
 <select id="fcat" onchange="render()"></select> <input id="busq" placeholder="Buscar ref, nombre, color, marca, talla" oninput="render()" style="min-width:250px">
 <select id="fest" onchange="render()"><option value="">Todos los estados</option><option value="disponible">Disponible</option><option value="sucia">Sucio</option><option value="vendida">Vendido</option></select><br>
 <button class="b g" onclick="exportar('inv')">Descargar Excel</button> <label class="b">Cargar Excel<input type="file" accept=".xlsx,.xls,.csv" onchange="importar(event)" hidden></label>
-<button class="b r adm off" onclick="borrarTodo()">Eliminar todo</button> <button class="b n adm off" onclick="cambiarClave()">Cambiar clave</button> <span id="cnt"></span></div>
+<button class="b r adm off" onclick="borrarTodo()">Eliminar todo</button> <button class="b n adm off" onclick="cambiarClave()">Cambiar clave</button> <span id="cnt"></span> <b class="mcnt" style="color:#5b2a86;margin-left:10px"></b> <button class="b n" onclick="desmarcarTodo()">Desmarcar todo</button></div>
 <div class="scroll"><table><thead><tr><th>Marcar</th><th>Código</th><th>Categoría</th><th>Ref</th><th>Nombre</th><th>Color/Sabor</th><th>Marca</th><th>Talla/Detalle</th><th>Precio</th><th>Estado</th><th>Pago</th><th></th></tr></thead><tbody id="tinv"></tbody></table></div></div>
 <div class="sec" id="s-apartado"></div><div class="sec" id="s-ventas"></div><div class="sec" id="s-caja"></div><div class="sec" id="s-compras"></div><div class="sec" id="s-total"></div>
 </main></div>
@@ -88,7 +88,7 @@ const secRet=(s,t,base)=>`<h3>${t}</h3><div class="card">Día <input type="date"
 $('nav').innerHTML=TABS.map(([k,v])=>`<button id="n-${k}" onclick="tab('${k}')">${v}</button>`).join('');
 $('rcat').innerHTML=Object.entries(CATS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
 $('fcat').innerHTML='<option value="">Todas las categorías</option>'+$('rcat').innerHTML;
-$('s-apartado').innerHTML=`<h3>Apartado por categoría</h3><div class="card"><div id="apBtns"></div><b id="apCnt" style="color:#5b2a86"></b></div><div class="scroll"><table><thead><tr><th>Marcar</th><th>Código</th><th>Categoría</th><th>Ref</th><th>Nombre</th><th>Color/Sabor</th><th>Marca</th><th>Talla/Detalle</th><th>Precio</th><th>Estado</th><th>Pago</th><th></th></tr></thead><tbody id="tap"></tbody></table></div>`;
+$('s-apartado').innerHTML=`<h3>Apartado por categoría</h3><div class="card"><div id="apBtns"></div><b id="apCnt" style="color:#5b2a86"></b> <b class="mcnt" style="color:#5b2a86;margin-left:10px"></b> <button class="b n" onclick="desmarcarTodo()">Desmarcar todo</button></div><div class="scroll"><table><thead><tr><th>Marcar</th><th>Código</th><th>Categoría</th><th>Ref</th><th>Nombre</th><th>Color/Sabor</th><th>Marca</th><th>Talla/Detalle</th><th>Precio</th><th>Estado</th><th>Pago</th><th></th></tr></thead><tbody id="tap"></tbody></table></div>`;
 $('s-ventas').innerHTML=`<h3>Ventas</h3><div class="card">Día <input type="date" id="d-ventas" onchange="render()"> Mes <input type="month" id="m-ventas" onchange="render()"> <button class="b g" onclick="exportar('ventas')">Descargar Excel</button></div><div class="card tot" id="T-ventas"></div><div class="scroll"><table><thead><tr><th>Fecha</th><th>Producto</th><th>Modalidad</th><th>Medio</th><th>Monto</th></tr></thead><tbody id="t-ventas"></tbody></table></div>`;
 $('s-caja').innerHTML=secRet('caja','Caja registradora (solo efectivo)',1);
 $('s-compras').innerHTML=secRet('compras','Compras (solo transacciones)',0);
@@ -108,7 +108,7 @@ const act=(TABS.find(([t])=>$('s-'+t).classList.contains('on'))||[])[0];
 const P=pagos(),ef=x=>x.medioPago=='efectivo',tr=x=>x.medioPago=='transaccion',q=$('busq').value.toLowerCase(),fc=$('fcat').value,fe=$('fest').value,
 L=Object.entries(inv).filter(([,p])=>(!fc||p.categoria==fc)&&(!fe||p.estado==fe)&&[p.codigo,p.referencia,p.nombre,p.color,p.marca,p.talla].join(' ').toLowerCase().includes(q));
 if(act=='inventario')$('tinv').innerHTML=L.map(fila).join('')||'<tr><td colspan="12">Sin resultados</td></tr>';
-$('cnt').textContent=L.length+' de '+Object.keys(inv).length+' productos';
+$('cnt').textContent=L.length+' de '+Object.keys(inv).length+' productos';contar();
 if(act=='apartado'){$('apBtns').innerHTML=Object.entries(CATS).map(([k,v])=>`<button class="b${ap==k?' g':''}" onclick="apSel('${k}')">${v}</button>`).join('');
 const AL=Object.entries(inv).filter(([,p])=>p.categoria==ap);
 $('tap').innerHTML=AL.map(fila).join('')||'<tr><td colspan="12">No hay productos en esta categoría</td></tr>';
@@ -137,7 +137,9 @@ function borrarTodo(){if(!esAdmin())return alert('Primero activa el modo adminis
 let ultimo=0;
 function sigCodigo(){ultimo=Math.max(ultimo,...Object.values(inv).map(p=>parseInt(String(p.codigo||'').replace(/\D/g,''))||0))+1;return 'SG'+String(ultimo).padStart(3,'0')}
 function apSel(k){ap=k;render()}
-function marcar(id,v){upd(dbr('inventario/'+id),{marcado:v})}
+function contar(){const n=Object.values(inv).filter(p=>p&&p.marcado).length;document.querySelectorAll('.mcnt').forEach(e=>e.textContent='Marcados: '+n)}
+function marcar(id,v){if(inv[id])inv[id].marcado=v;contar();upd(dbr('inventario/'+id),{marcado:v})}
+function desmarcarTodo(){const o={};Object.entries(inv).forEach(([id,p])=>{if(p&&p.marcado){o[id+'/marcado']=false;p.marcado=false}});document.querySelectorAll('#tinv input[type=checkbox],#tap input[type=checkbox]').forEach(c=>c.checked=false);contar();if(Object.keys(o).length)upd(dbr('inventario'),o)}
 function estado(id,v){upd(dbr('inventario/'+id),{estado:v});if(v=='vendida'&&inv[id]&&!pg(inv[id]).length)abrirPago(id)}
 function borrar(id){if(confirm('¿Eliminar este producto?'))del(dbr('inventario/'+id))}
 function etiquetas(){$('rcol').placeholder='Color / Sabor';$('rtal').placeholder='Talla / Detalle'}
@@ -174,6 +176,6 @@ wb.SheetNames.forEach(sn=>XLSX.utils.sheet_to_json(wb.Sheets[sn]).forEach(o=>{co
 lote[push(dbr('inventario')).key]={categoria:kc(g('Categoría'))||kc(sn)||'dama',codigo:g('Código')||sigCodigo(),referencia:g('Referencia'),nombre:g('Nombre'),color:g('Color/Sabor')||g('Color'),marca:g('Marca'),talla:g('Talla/Detalle')||g('Talla'),precio:parseFloat(o.Precio)||0,estado:['sucia','vendida'].includes(es)?es:'disponible',marcado:false,tipoPago:'inmediato'};n++}));
 if(!n){render();return alert('No se encontraron productos en el Excel')}
 upd(dbr('inventario'),lote).then(()=>alert('Productos importados: '+n))},30);rd.readAsArrayBuffer(f)}
-Object.assign(window,{apSel,render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,estado,borrar,etiquetas,limpiar,editar,guardar,abrirPago,tipoPago,guardarPago,delPago,cerrar,guardarBase,addRet,delRet,exportar,importar});
+Object.assign(window,{apSel,render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,desmarcarTodo,estado,borrar,etiquetas,limpiar,editar,guardar,abrirPago,tipoPago,guardarPago,delPago,cerrar,guardarBase,addRet,delRet,exportar,importar});
 window.appListo=true;render();
 </script></body></html>
