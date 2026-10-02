@@ -58,6 +58,7 @@ td select{padding:7px;font-size:14px;margin:0}
 <select id="fcat" onchange="render()"></select> <input id="busq" placeholder="Buscar ref, nombre, color, marca, talla" oninput="render()" style="min-width:250px">
 <select id="fest" onchange="render()"><option value="">Todos los estados</option><option value="disponible">Disponible</option><option value="sucia">Sucio</option><option value="vendida">Vendido</option></select><br>
 <button class="b g" onclick="exportar('inv')">Descargar Excel</button> <label class="b">Cargar Excel<input type="file" accept=".xlsx,.xls,.csv" onchange="importar(event)" hidden></label>
+<label class="b" style="--c:#d4881f">Cargar ventas (Excel)<input type="file" accept=".xlsx,.xls,.csv" onchange="importarVentas(event)" hidden></label> <select id="vmedio" title="Medio de pago de las ventas cargadas"><option value="efectivo">Ventas en efectivo</option><option value="transaccion">Ventas por transacción</option></select>
 <button class="b r adm off" onclick="borrarTodo()">Eliminar todo</button> <button class="b n adm off" onclick="cambiarClave()">Cambiar clave</button> <span id="cnt"></span> <b class="mcnt" style="color:#5b2a86;margin-left:10px"></b> <button class="b n" onclick="desmarcarTodo()">Desmarcar todo</button></div>
 <div class="scroll"><table><thead><tr><th>Marcar</th><th>Código</th><th>Categoría</th><th>Ref</th><th>Nombre</th><th>Color/Sabor</th><th>Marca</th><th>Talla/Detalle</th><th>Precio</th><th>Estado</th><th>Pago</th><th></th></tr></thead><tbody id="tinv"></tbody></table></div></div>
 <div class="sec" id="s-apartado"></div><div class="sec" id="s-ventas"></div><div class="sec" id="s-caja"></div><div class="sec" id="s-compras"></div><div class="sec" id="s-total"></div>
@@ -172,10 +173,33 @@ if(t=='compras')xl('compras_'+m,{Transacciones:vr.filter(x=>x.Medio=='transaccio
 if(t=='total'){const e=suma(P.filter(im),x=>x.medioPago=='efectivo'),tt=suma(P.filter(im),x=>x.medioPago=='transaccion'),r=suma(Rc,im),c=suma(Rp,im);xl('total_'+m,{Total:[{Concepto:'Efectivo',Valor:e},{Concepto:'Transacciones',Valor:tt},{Concepto:'Retiros (caja)',Valor:r},{Concepto:'Compra de mercancía',Valor:c},{Concepto:'Total del mes',Valor:e+tt-r-c}]})}}
 function importar(ev){const f=ev.target.files[0];if(!f)return;ev.target.value='';$('cnt').textContent='Leyendo Excel...';const rd=new FileReader();
 rd.onload=x=>setTimeout(()=>{const wb=XLSX.read(x.target.result,{type:'array'}),kc=s=>Object.keys(CATS).find(k=>CATS[k].toLowerCase()==String(s).toLowerCase()),lote={};let n=0;
-wb.SheetNames.forEach(sn=>XLSX.utils.sheet_to_json(wb.Sheets[sn]).forEach(o=>{const g=k=>String(o[k]??'').trim();if(!g('Referencia')&&!g('Nombre'))return;const es=g('Estado').toLowerCase();
-lote[push(dbr('inventario')).key]={categoria:kc(g('Categoría'))||kc(sn)||'dama',codigo:g('Código')||sigCodigo(),referencia:g('Referencia'),nombre:g('Nombre'),color:g('Color/Sabor')||g('Color'),marca:g('Marca'),talla:g('Talla/Detalle')||g('Talla'),precio:parseFloat(o.Precio)||0,estado:['sucia','vendida'].includes(es)?es:'disponible',marcado:false,tipoPago:'inmediato'};n++}));
+wb.SheetNames.forEach(sn=>XLSX.utils.sheet_to_json(wb.Sheets[sn]).forEach(o=>{const nk=t=>String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''),N={};Object.keys(o).forEach(k=>N[nk(k)]=o[k]);const g=(...a)=>{for(const k of a){const v=N[nk(k)];if(v!==undefined&&String(v).trim()!=='')return String(v).trim()}return ''};if(!g('Referencia','Ref','Referencias','Reference')&&!g('Nombre','Producto','Descripcion'))return;const es=g('Estado').toLowerCase();
+lote[push(dbr('inventario')).key]={categoria:kc(g('Categoría','Categoria'))||kc(sn)||'dama',codigo:g('Código','Codigo')||sigCodigo(),referencia:g('Referencia','Ref','Referencias','Reference'),nombre:g('Nombre','Producto','Descripcion'),color:g('Color/Sabor','Color','Sabor'),marca:g('Marca'),talla:g('Talla/Detalle','Talla','Detalle'),precio:parseFloat(g('Precio','Valor'))||0,estado:['sucia','vendida'].includes(es)?es:'disponible',marcado:false,tipoPago:'inmediato'};n++}));
 if(!n){render();return alert('No se encontraron productos en el Excel')}
 upd(dbr('inventario'),lote).then(()=>alert('Productos importados: '+n))},30);rd.readAsArrayBuffer(f)}
-Object.assign(window,{apSel,render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,desmarcarTodo,estado,borrar,etiquetas,limpiar,editar,guardar,abrirPago,tipoPago,guardarPago,delPago,cerrar,guardarBase,addRet,delRet,exportar,importar});
+function importarVentas(ev){const f=ev.target.files[0];if(!f)return;ev.target.value='';$('cnt').textContent='Leyendo Excel de ventas...';const rd=new FileReader();
+rd.onload=x=>setTimeout(()=>{try{
+const nk=t=>String(t??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''),
+z=n=>String(n).padStart(2,'0'),
+pf=v=>{if(v instanceof Date&&!isNaN(v))return v.toLocaleDateString('en-CA');if(typeof v=='number'&&v>20000&&v<80000){const d=XLSX.SSF.parse_date_code(v);return d.y+'-'+z(d.m)+'-'+z(d.d)}
+const s=String(v??'').trim();if(!s)return '';let m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return m[1]+'-'+z(m[2])+'-'+z(m[3]);m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);if(m)return(m[3].length==2?'20'+m[3]:m[3])+'-'+z(m[2])+'-'+z(m[1]);const d=new Date(s);return isNaN(d)?'':d.toLocaleDateString('en-CA')};
+const wb=XLSX.read(x.target.result,{type:'array'}),prods=Object.entries(inv),usados=new Set(),cambios={},nf=[],ya=[],sf=[];let ok=0;
+wb.SheetNames.forEach(sn=>{const R=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:''}),hi=R.findIndex(r=>r.filter(c=>String(c).trim()!=='').length>=2);if(hi<0)return;
+const H=R[hi].map(nk);let last=H.length-1;while(last>0&&!H[last])last--;const ci=H.findIndex(h=>h=='fecha'||h=='fechaventa'||h=='fechadeventa'),di=ci>=0?ci:last,
+col=(...a)=>{for(const k of a){const i=H.indexOf(nk(k));if(i>=0&&i!=di)return i}return -1},
+iC=col('Código','Codigo'),iR=col('Referencia','Ref'),iN=col('Nombre','Producto'),iCo=col('Color/Sabor','Color','Sabor'),iM=col('Marca'),iT=col('Talla/Detalle','Talla','Detalle'),iMe=col('Medio','Medio de pago','Medio pago');
+R.slice(hi+1).forEach(r=>{const v=i=>i>=0?nk(r[i]):'',cod=v(iC),ref=v(iR),nom=v(iN);if(!cod&&!ref&&!nom)return;
+const rot=[iC>=0&&String(r[iC]).trim(),iR>=0&&String(r[iR]).trim(),iN>=0&&String(r[iN]).trim()].filter(Boolean).join(' '),fe=pf(r[di]);if(!fe){sf.push(rot);return}
+const cand=prods.filter(([id,p])=>!usados.has(id)&&(cod?nk(p.codigo)==cod:(!ref||nk(p.referencia)==ref)&&(!nom||nk(p.nombre)==nom)&&(!v(iCo)||nk(p.color)==v(iCo))&&(!v(iM)||nk(p.marca)==v(iM))&&(!v(iT)||nk(p.talla)==v(iT))));
+const libre=cand.find(([,p])=>p.estado!='vendida');if(!libre){(cand.length?ya:nf).push(rot);return}
+const[id,p]=libre;usados.add(id);
+const mv=iMe>=0?nk(r[iMe]):'',medio=/transac/.test(mv)?'transaccion':/efectivo/.test(mv)?'efectivo':$('vmedio').value;
+cambios[id+'/estado']='vendida';cambios[id+'/tipoPago']='inmediato';cambios[id+'/fechaVenta']=fe;cambios[id+'/pagos']=[{monto:Number(p.precio)||0,fecha:fe,medioPago:medio,tipoPago:'inmediato',cuotaNum:1}];ok++})});
+const lista=a=>a.slice(0,8).join(', ')+(a.length>8?'...':'');
+if(!ok){render();return alert('No se marcó ningún producto como vendido.'+(sf.length?'\nSin fecha en la última columna ('+sf.length+'): '+lista(sf):'')+(nf.length?'\nNo encontrados ('+nf.length+'): '+lista(nf):'')+(ya.length?'\nYa estaban vendidos ('+ya.length+'): '+lista(ya):''))}
+const msg='Se marcarán como VENDIDOS: '+ok+' producto(s)'+(ya.length?'\nYa estaban vendidos: '+ya.length:'')+(nf.length?'\nNo encontrados: '+nf.length+' ('+lista(nf)+')':'')+(sf.length?'\nSin fecha (NO se marcan como vendidos): '+sf.length+' ('+lista(sf)+')':'')+'\n\n¿Continuar?';
+if(!confirm(msg)){render();return}
+upd(dbr('inventario'),cambios).then(()=>alert('Ventas registradas: '+ok))}catch(e){aviso(e);render()}},30);rd.readAsArrayBuffer(f)}
+Object.assign(window,{apSel,render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,desmarcarTodo,estado,borrar,etiquetas,limpiar,editar,guardar,abrirPago,tipoPago,guardarPago,delPago,cerrar,guardarBase,addRet,delRet,exportar,importar,importarVentas});
 window.appListo=true;render();
 </script></body></html>
