@@ -42,7 +42,7 @@ td select{padding:7px;font-size:14px;margin:0}
 #login .b{width:100%;font-size:19px;margin-top:12px}
 #modal{display:none;position:fixed;inset:0;background:#0007;z-index:50;overflow:auto}
 #modal>div{background:#fff;max-width:560px;margin:30px auto;padding:20px;border-radius:12px}
-#vmodal{display:none;position:fixed;inset:0;background:#0007;z-index:50;overflow:auto}#vmodal>div{background:#fff;max-width:420px;margin:60px auto;padding:20px;border-radius:12px;text-align:center}
+#vmodal,#emodal{display:none;position:fixed;inset:0;background:#0007;z-index:50;overflow:auto}#vmodal>div,#emodal>div{background:#fff;max-width:420px;margin:60px auto;padding:20px;border-radius:12px;text-align:center}
 .adm.off{opacity:.45}
 #cnt{font-weight:600;color:#4a2c6d;margin-left:8px}
 @media(max-width:600px){.b,nav button{padding:11px 15px;font-size:15px}header{font-size:19px}}
@@ -66,6 +66,7 @@ td select{padding:7px;font-size:14px;margin:0}
 <div class="sec" id="s-apartado"></div><div class="sec" id="s-clientes"></div><div class="sec" id="s-ventas"></div><div class="sec" id="s-caja"></div><div class="sec" id="s-compras"></div><div class="sec" id="s-total"></div>
 </main></div>
 <div id="fp"></div>
+<div id="emodal"><div><h3>Editar cliente</h3><label>N.º <input id="e-num" type="number" min="1" placeholder="N.º" style="width:90px"></label><br><input id="e-nom" placeholder="Nombre del cliente"><br><input id="e-tel" placeholder="Teléfono"><br><br><button class="b g" onclick="guardarEdCliente()">Guardar</button> <button class="b n" onclick="cerrarE()">Cancelar</button></div></div>
 <div id="vmodal"><div><h3 id="vt"></h3><p id="vs"></p><button class="b g" onclick="vender('efectivo')">Efectivo</button> <button class="b" onclick="vender('transaccion')">Transferencia</button> <button class="b n" onclick="cerrarV()">Cancelar</button></div></div>
 <div id="modal"><div><h3 id="mt"></h3><p id="ms" style="font-weight:bold"></p><div id="mh"></div><hr>
 <div id="mf"><select id="mmedio"><option value="efectivo">Efectivo</option><option value="transaccion">Transacción</option></select>
@@ -97,7 +98,7 @@ $('s-caja').innerHTML=secRet('caja','Caja registradora (solo efectivo)',1);
 $('s-compras').innerHTML=secRet('compras','Compras (solo transacciones)',0);
 $('s-total').innerHTML=`<h3>Total</h3><div class="card">Mes <input type="month" id="m-total" onchange="render()"> <button class="b g" onclick="exportar('total')">Descargar Excel</button></div><div class="card tot" id="T-total"></div>`;
 $('s-clientes').innerHTML=`<h3>Compras clientes</h3><div class="card tot" id="T-clientes"></div>
-<div class="card"><b>Nuevo cliente</b><br><input id="cl-nombre" placeholder="Nombre del cliente"> <input id="cl-tel" placeholder="Teléfono (opcional)"> <button class="b g" onclick="addCliente()">Agregar cliente</button></div>
+<div class="card"><b>Nuevo cliente</b> <small id="cl-next" style="color:#4a2c6d"></small><br><input id="cl-nombre" placeholder="Nombre del cliente"> <input id="cl-tel" placeholder="Teléfono (opcional)"> <button class="b g" onclick="addCliente()">Agregar cliente</button></div>
 <div class="card"><input id="cl-q" placeholder="Buscar cliente por nombre o teléfono" oninput="render()" style="min-width:280px"><div id="cl-lista" style="margin-top:8px"></div></div>
 <div id="cl-det" style="display:none"><div class="card" id="cl-head"></div>
 <div class="card"><b>Registrar compra</b><br><input id="cl-prod" list="cl-dl" placeholder="Producto: código, ref o nombre (o escribe otro)" autocomplete="off" oninput="cpSel()" style="min-width:320px"><datalist id="cl-dl"></datalist>
@@ -110,7 +111,7 @@ $('cl-fecha').value=hoy;ctipoCh();
 ['d-ventas','d-caja','d-compras','rf-caja','rf-compras'].forEach(i=>$(i).value=hoy);
 ['m-ventas','m-caja','m-compras','m-total'].forEach(i=>$(i).value=hoy.slice(0,7));
 on('inventario',v=>{inv=v||{};anotar();pedirRender()});
-on('clientes',v=>{cli=v||{};anotar();pedirRender()});
+on('clientes',v=>{cli=v||{};numerar();anotar();pedirRender()});
 on('caja_registradora',v=>{caja=v||{};caja.bases=caja.bases||{};caja.retiros=caja.retiros||[];pedirRender()});
 on('compras_transacciones',v=>{comp=v||{};comp.retiros=comp.retiros||[];pedirRender()});
 on('config',v=>{if(v&&v.password)clave=String(v.password);else set(dbr('config/password'),'1234')});
@@ -197,8 +198,17 @@ const TIPO={inmediato:'Pago inmediato',separe:'Plan separe',credito:'Crédito'},
 totC=c=>{const A=Object.values((c&&c.compras)||{}),pr=A.reduce((t,k)=>t+Number(k.precio||0),0),ab=A.reduce((t,k)=>t+suma(pg(k),()=>1),0);return{n:A.length,pr,ab,rest:pr-ab}},
 descK=k=>[k.codigo,k.referencia,k.nombre,k.color,k.talla].filter(Boolean).join(' · ')||k.producto||'';
 function addCliente(){const n=$('cl-nombre').value.trim();if(!n)return alert('Escribe el nombre del cliente');if(Object.values(cli).some(c=>c&&fk(c.nombre)==fk(n)))return alert('Ya existe un cliente con ese nombre');
-const k=push(dbr('clientes')).key;set(dbr('clientes/'+k),{nombre:n,telefono:$('cl-tel').value.trim(),creado:hoy});$('cl-nombre').value=$('cl-tel').value='';cs=k;render()}
+const k=push(dbr('clientes')).key;set(dbr('clientes/'+k),{numero:sigNumCli(),nombre:n,telefono:$('cl-tel').value.trim(),creado:hoy});$('cl-nombre').value=$('cl-tel').value='';cs=k;render()}
+function sigNumCli(){return Math.max(0,...Object.values(cli).map(c=>(c&&Number(c.numero))||0))+1}
+function numerar(){const A=Object.entries(cli).filter(([,c])=>c);let mx=Math.max(0,...A.map(([,c])=>Number(c.numero)||0));const f=A.filter(([,c])=>!(Number(c.numero)>0)).sort((a,b)=>String(a[1].creado||'').localeCompare(String(b[1].creado||''))||a[0].localeCompare(b[0]));if(!f.length)return;const o={};f.forEach(([id,c])=>{c.numero=++mx;o['clientes/'+id+'/numero']=c.numero});upd(ref(db),o)}
 function selCliente(id){cs=id;render()}
+function editarCliente(){const c=cli[cs];if(!c)return;$('e-num').value=c.numero||'';$('e-nom').value=c.nombre||'';$('e-tel').value=c.telefono||'';$('emodal').style.display='block'}
+function guardarEdCliente(){const c=cli[cs];if(!c)return cerrarE();const n=$('e-nom').value.trim(),num=parseInt($('e-num').value,10),t=$('e-tel').value.trim();
+if(!n)return alert('Escribe el nombre del cliente');if(!(num>0))return alert('El número debe ser mayor a 0');
+if(Object.entries(cli).some(([id,x])=>id!=cs&&x&&fk(x.nombre)==fk(n)))return alert('Ya existe un cliente con ese nombre');
+if(Object.entries(cli).some(([id,x])=>id!=cs&&x&&Number(x.numero)==num))return alert('Ese número ya lo tiene otro cliente');
+upd(dbr('clientes/'+cs),{nombre:n,telefono:t,numero:num});cerrarE()}
+function cerrarE(){$('emodal').style.display='none'}
 function delCliente(c){const x=cli[c];if(!x)return;if(!confirm('¿Eliminar a '+x.nombre+'? Se borran sus compras y abonos (también de Ventas y Caja) y sus productos vuelven al inventario.'))return;
 const o={['clientes/'+c]:null};Object.values(x.compras||{}).forEach(k=>{if(k.inv&&inv[k.inv]&&inv[k.inv].estado=='vendida')o['inventario/'+k.inv+'/estado']=k.estadoPrev||'disponible'});cs='';upd(ref(db),o)}
 function cpSel(){const id=CPM.get($('cl-prod').value.trim());if(id&&inv[id])$('cl-precio').value=inv[id].precio;ctipoCh()}
@@ -224,10 +234,11 @@ function delAbono(i){if(!confirm('¿Eliminar este abono?'))return;const r=cli[ac
 function cerrar(){$('modal').style.display='none';ac=ak=''}
 function clientes(){const q=fk($('cl-q').value),T=Object.values(cli).filter(Boolean).map(totC),sum=f=>T.reduce((t,x)=>t+x[f],0);
 $('T-clientes').innerHTML=`<div>Clientes<b>${T.length}</b></div>`+cd('Total vendido a clientes',sum('pr'))+cd('Abonado',sum('ab'))+cd('Por cobrar',sum('rest'));
-const L=Object.entries(cli).filter(([,c])=>c&&(!q||fk(c.nombre+' '+(c.telefono||'')).includes(q))).sort((a,b)=>String(a[1].nombre).localeCompare(String(b[1].nombre),'es'));
-$('cl-lista').innerHTML=L.map(([id,c])=>{const t=totC(c);return `<button class="b${id==cs?' g':''}" onclick="selCliente('${id}')">${esc(c.nombre)}${t.rest>0?' · debe '+fmt(t.rest):''}</button>`}).join(' ')||'<i>No hay clientes</i>';
+const L=Object.entries(cli).filter(([,c])=>c&&(!q||fk(c.nombre+' '+(c.telefono||'')+' '+(c.numero||'')).includes(q))).sort((a,b)=>(Number(a[1].numero)||1e9)-(Number(b[1].numero)||1e9)||String(a[1].nombre).localeCompare(String(b[1].nombre),'es'));
+$('cl-next').textContent='(será el N.º '+sigNumCli()+')';
+$('cl-lista').innerHTML=L.map(([id,c])=>{const t=totC(c);return `<button class="b${id==cs?' g':''}" onclick="selCliente('${id}')">${c.numero?c.numero+'. ':''}${esc(c.nombre)}${c.telefono?' · '+esc(c.telefono):''}${t.rest>0?' · debe '+fmt(t.rest):''}</button>`}).join(' ')||'<i>No hay clientes</i>';
 const c=cli[cs];$('cl-det').style.display=c?'block':'none';if(!c)return;const t=totC(c);
-$('cl-head').innerHTML=`<b style="font-size:19px">${esc(c.nombre)}</b>${c.telefono?' · '+esc(c.telefono):''}<br>Compras: <b>${t.n}</b> · Total: <b>${fmt(t.pr)}</b> · Abonado: <b>${fmt(t.ab)}</b> · Debe: <b style="color:${t.rest>0?'#c0392b':'#148f77'}">${fmt(t.rest)}</b> <button class="b r" onclick="delCliente('${cs}')">Eliminar cliente</button>`;
+$('cl-head').innerHTML=`<b style="font-size:19px">${c.numero?'N.º '+c.numero+' · ':''}${esc(c.nombre)}</b>${c.telefono?' · '+esc(c.telefono):''} <button class="b" onclick="editarCliente()">Editar</button><br>Compras: <b>${t.n}</b> · Total: <b>${fmt(t.pr)}</b> · Abonado: <b>${fmt(t.ab)}</b> · Debe: <b style="color:${t.rest>0?'#c0392b':'#148f77'}">${fmt(t.rest)}</b> <button class="b r" onclick="delCliente('${cs}')">Eliminar cliente</button>`;
 const lb=Object.entries(inv).filter(([,p])=>p&&!p._oc&&p.estado!='vendida').sort((a,b)=>String(a[1].codigo).localeCompare(String(b[1].codigo),'es',{numeric:true}));CPM=new Map(lb.map(([id,p])=>[[p.codigo,p.referencia||'S/R',p.nombre,p.color,p.talla,fmt(p.precio)].filter(Boolean).join(' · '),id]));
 if($('cl-dl').dataset.n!=CPM.size+'|'+lb.map(x=>x[0]).join('')){$('cl-dl').innerHTML=[...CPM.keys()].map(k=>`<option value="${esc(k)}">`).join('');$('cl-dl').dataset.n=CPM.size+'|'+lb.map(x=>x[0]).join('')}
 $('cl-tabla').innerHTML=Object.entries(c.compras||{}).sort((a,b)=>String(b[1].fecha).localeCompare(String(a[1].fecha))).map(([k,r])=>{const ab=suma(pg(r),()=>1),rest=r.precio-ab;
@@ -272,6 +283,6 @@ if(!ok){render();return alert('No se marcó ningún producto como vendido.'+(sf.
 const msg='Se marcarán como VENDIDOS: '+ok+' producto(s)'+(ya.length?'\nYa estaban vendidos: '+ya.length:'')+(nf.length?'\nNo encontrados: '+nf.length+' ('+lista(nf)+')':'')+(sf.length?'\nSin fecha (NO se marcan como vendidos): '+sf.length+' ('+lista(sf)+')':'')+'\n\n¿Continuar?';
 if(!confirm(msg)){render();return}
 upd(dbr('inventario'),cambios).then(()=>alert('Ventas registradas: '+ok))}catch(e){aviso(e);render()}},30);rd.readAsArrayBuffer(f)}
-Object.assign(window,{apSel,render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,desmarcarTodo,estado,borrar,etiquetas,limpiar,editar,guardar,abrirVenta,vender,cerrarV,addCliente,selCliente,delCliente,cpSel,ctipoCh,addCompra,delCompra,abrirAbono,guardarAbono,delAbono,fIn,fOpen,fCerrar,cerrar,guardarBase,addRet,delRet,exportar,importar,importarVentas,limpiarFiltros});
+Object.assign(window,{apSel,render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,desmarcarTodo,estado,borrar,etiquetas,limpiar,editar,guardar,editarCliente,guardarEdCliente,cerrarE,abrirVenta,vender,cerrarV,addCliente,selCliente,delCliente,cpSel,ctipoCh,addCompra,delCompra,abrirAbono,guardarAbono,delAbono,fIn,fOpen,fCerrar,cerrar,guardarBase,addRet,delRet,exportar,importar,importarVentas,limpiarFiltros});
 window.appListo=true;render();
 </script></body></html>
