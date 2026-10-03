@@ -25,6 +25,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 th{background:#4a2c6d;color:#fff;padding:12px 8px;text-align:left}
 td{border-bottom:1px solid #eee;padding:8px;text-align:left}
 tr:hover td{background:#f3eff8}
+.frow th{background:#6b4a91;padding:4px}.frow input,.frow select{width:100%;min-width:90px;margin:0;padding:6px 8px;font-size:13px;box-sizing:border-box}
 tr.sucia td{background:#ffb3b3}tr.vendida td{background:#fff08a}
 td .b{padding:7px 12px;font-size:15px;margin:2px}
 td select{padding:7px;font-size:14px;margin:0}
@@ -55,12 +56,11 @@ td select{padding:7px;font-size:14px;margin:0}
 <select id="rest"><option value="disponible">Disponible</option><option value="sucia">Sucio</option><option value="vendida">Vendido</option></select>
 <button class="b g">Guardar</button> <button type="button" class="b n" onclick="limpiar()">Limpiar</button></form></div></div>
 <div class="sec" id="s-inventario"><div class="card">
-<select id="fcat" onchange="render()"></select> <input id="busq" placeholder="Buscar ref, nombre, color, marca, talla" oninput="render()" style="min-width:250px">
-<select id="fest" onchange="render()"><option value="">Todos los estados</option><option value="disponible">Disponible</option><option value="sucia">Sucio</option><option value="vendida">Vendido</option></select><br>
+<select id="fest" onchange="render()"><option value="">Todos los estados</option><option value="disponible">Disponible</option><option value="sucia">Sucio</option><option value="vendida">Vendido</option></select> <button class="b n" onclick="limpiarFiltros()">Limpiar filtros</button><br>
 <button class="b g" onclick="exportar('inv')">Descargar Excel</button> <label class="b">Cargar Excel<input type="file" accept=".xlsx,.xls,.csv" onchange="importar(event)" hidden></label>
 <label class="b" style="--c:#d4881f">Cargar ventas (Excel)<input type="file" accept=".xlsx,.xls,.csv" onchange="importarVentas(event)" hidden></label> <select id="vmedio" title="Medio de pago de las ventas cargadas"><option value="efectivo">Ventas en efectivo</option><option value="transaccion">Ventas por transacción</option></select>
 <button class="b r adm off" onclick="borrarTodo()">Eliminar todo</button> <button class="b n adm off" onclick="cambiarClave()">Cambiar clave</button> <span id="cnt"></span> <b class="mcnt" style="color:#5b2a86;margin-left:10px"></b> <button class="b n" onclick="desmarcarTodo()">Desmarcar todo</button></div>
-<div class="scroll"><table><thead><tr><th>Marcar</th><th>Código</th><th>Categoría</th><th>Ref</th><th>Nombre</th><th>Color/Sabor</th><th>Marca</th><th>Talla/Detalle</th><th>Precio</th><th>Estado</th><th>Pago</th><th></th></tr></thead><tbody id="tinv"></tbody></table></div></div>
+<div class="scroll"><table><thead><tr><th>Marcar</th><th>Código</th><th>Categoría</th><th>Ref</th><th>Nombre</th><th>Color/Sabor</th><th>Marca</th><th>Talla/Detalle</th><th>Precio</th><th>Estado</th><th>Pago</th><th></th></tr><tr class="frow"><th></th><th><input id="f-codigo" placeholder="Filtrar" oninput="render()"></th><th><select id="f-categoria" onchange="render()"></select></th><th><select id="f-referencia" onchange="render()"></select></th><th><select id="f-nombre" onchange="render()"></select></th><th><select id="f-color" onchange="render()"></select></th><th><select id="f-marca" onchange="render()"></select></th><th><select id="f-talla" onchange="render()"></select></th><th><select id="f-precio" onchange="render()"></select></th><th></th><th></th><th></th></tr></thead><tbody id="tinv"></tbody></table></div></div>
 <div class="sec" id="s-apartado"></div><div class="sec" id="s-ventas"></div><div class="sec" id="s-caja"></div><div class="sec" id="s-compras"></div><div class="sec" id="s-total"></div>
 </main></div>
 <div id="modal"><div><h3 id="mt"></h3><p id="ms" style="font-weight:bold"></p><div id="mh"></div><hr>
@@ -88,7 +88,6 @@ const set=(r,v)=>S(r,v).catch(aviso),upd=(r,v)=>U(r,v).catch(aviso),del=r=>R(r).
 const secRet=(s,t,base)=>`<h3>${t}</h3><div class="card">Día <input type="date" id="d-${s}" onchange="render()"> Mes <input type="month" id="m-${s}" onchange="render()"> <button class="b g" onclick="exportar('${s}')">Descargar Excel</button></div>${base?`<div class="card">Base del día: <input type="number" id="base" placeholder="0"> <button class="b g" onclick="guardarBase()">Guardar base</button></div>`:''}<div class="card tot" id="T-${s}"></div><div class="card">${base?'Retiro':'Compra de mercancía'}: <input type="number" id="rm-${s}" placeholder="Monto"> <input id="rt-${s}" placeholder="Motivo"> <input type="date" id="rf-${s}"> <button class="b r" onclick="addRet('${s}')">Registrar</button></div><div class="scroll"><table><thead><tr><th>Fecha</th><th>Motivo</th><th>Monto</th><th></th></tr></thead><tbody id="t-${s}"></tbody></table></div>`;
 $('nav').innerHTML=TABS.map(([k,v])=>`<button id="n-${k}" onclick="tab('${k}')">${v}</button>`).join('');
 $('rcat').innerHTML=Object.entries(CATS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
-$('fcat').innerHTML='<option value="">Todas las categorías</option>'+$('rcat').innerHTML;
 $('s-apartado').innerHTML=`<h3>Apartado por categoría</h3><div class="card"><div id="apBtns"></div><b id="apCnt" style="color:#5b2a86"></b> <b class="mcnt" style="color:#5b2a86;margin-left:10px"></b> <button class="b n" onclick="desmarcarTodo()">Desmarcar todo</button></div><div class="scroll"><table><thead><tr><th>Marcar</th><th>Código</th><th>Categoría</th><th>Ref</th><th>Nombre</th><th>Color/Sabor</th><th>Marca</th><th>Talla/Detalle</th><th>Precio</th><th>Estado</th><th>Pago</th><th></th></tr></thead><tbody id="tap"></tbody></table></div>`;
 $('s-ventas').innerHTML=`<h3>Ventas</h3><div class="card">Día <input type="date" id="d-ventas" onchange="render()"> Mes <input type="month" id="m-ventas" onchange="render()"> <button class="b g" onclick="exportar('ventas')">Descargar Excel</button></div><div class="card tot" id="T-ventas"></div><div class="scroll"><table><thead><tr><th>Fecha</th><th>Producto</th><th>Modalidad</th><th>Medio</th><th>Monto</th></tr></thead><tbody id="t-ventas"></tbody></table></div>`;
 $('s-caja').innerHTML=secRet('caja','Caja registradora (solo efectivo)',1);
@@ -104,10 +103,19 @@ const pagos=()=>Object.entries(inv).flatMap(([id,p])=>pg(p).map(x=>({...x,nombre
 const filaRet=(A,s,m)=>A.map((x,i)=>[x,i]).filter(([x])=>m&&F(x).startsWith(m)).map(([x,i])=>`<tr><td>${x.fecha}</td><td>${esc(x.motivo)}</td><td>${fmt(x.monto)}</td><td><button class="b r" onclick="delRet('${s}',${i})">Quitar</button></td></tr>`).join('');
 const fila=([id,p])=>`<tr class="${p.estado}"><td><input type="checkbox" ${p.marcado?'checked':''} onchange="marcar('${id}',this.checked)"></td><td><b>${esc(p.codigo)}</b></td><td>${CATS[p.categoria]||''}</td><td>${esc(p.referencia)}</td><td>${esc(p.nombre)}</td><td>${esc(p.color)}</td><td>${esc(p.marca)}</td><td>${esc(p.talla)}</td><td>${fmt(p.precio)}</td><td><select onchange="estado('${id}',this.value)">${Object.entries(EST).map(([k,v])=>`<option value="${k}"${k==p.estado?' selected':''}>${v}</option>`).join('')}</select></td><td>${p.estado=='vendida'?`${p.tipoPago||'inmediato'} ${fmt(suma(pg(p),()=>1))}/${fmt(p.precio)} <button class="b" onclick="abrirPago('${id}')">Pagos</button>`:''}</td><td><button class="b" onclick="editar('${id}')">Editar</button> <button class="b r" onclick="borrar('${id}')">Eliminar</button></td></tr>`;
 let rq=0;function pedirRender(){if(!rq)rq=requestAnimationFrame(()=>{rq=0;render()})}
+function FCOLS(){return{categoria:p=>p.categoria||'',referencia:p=>p.referencia,nombre:p=>p.nombre,color:p=>p.color,marca:p=>p.marca,talla:p=>p.talla,precio:p=>Number(p.precio)||0}}
+function fk(v){return String(v??'').trim().toLowerCase()}
+function pasa(p,skip){const fe=$('fest').value,cq=fk($('f-codigo').value),C=FCOLS();if(fe&&p.estado!=fe)return false;if(cq&&!fk(p.codigo).includes(cq))return false;
+return Object.keys(C).every(c=>{if(c==skip)return true;const s=$('f-'+c).value;return !s||(fk(C[c](p))||'__')==s})}
+function filtros(){const C=FCOLS(),lab=(c,r)=>c=='categoria'?(CATS[r]||r||'(vacío)'):c=='precio'?fmt(r):(String(r??'').trim()||'(vacío)');
+Object.keys(C).forEach(c=>{const el=$('f-'+c),cur=el.value;if(document.activeElement===el)return;const m=new Map();
+Object.values(inv).forEach(p=>{if(!p||!pasa(p,c))return;const r=C[c](p),k=fk(r)||'__',o=m.get(k)||{l:lab(c,r),n:0};o.n++;m.set(k,o)});
+const a=[...m].sort((x,y)=>c=='precio'?(Number(x[0])||0)-(Number(y[0])||0):x[1].l.localeCompare(y[1].l,'es',{numeric:true}));
+el.innerHTML='<option value="">Todos</option>'+a.map(([k,o])=>`<option value="${esc(k)}">${esc(o.l)} (${o.n})</option>`).join('');el.value=m.has(cur)?cur:''})}
+function limpiarFiltros(){$('fest').value='';$('f-codigo').value='';Object.keys(FCOLS()).forEach(c=>$('f-'+c).value='');render()}
 function render(){
 const act=(TABS.find(([t])=>$('s-'+t).classList.contains('on'))||[])[0];
-const P=pagos(),ef=x=>x.medioPago=='efectivo',tr=x=>x.medioPago=='transaccion',q=$('busq').value.toLowerCase(),fc=$('fcat').value,fe=$('fest').value,
-L=Object.entries(inv).filter(([,p])=>(!fc||p.categoria==fc)&&(!fe||p.estado==fe)&&[p.codigo,p.referencia,p.nombre,p.color,p.marca,p.talla].join(' ').toLowerCase().includes(q));
+const P=pagos(),ef=x=>x.medioPago=='efectivo',tr=x=>x.medioPago=='transaccion',L=(act=='inventario'&&filtros(),Object.entries(inv).filter(([,p])=>p&&pasa(p,'')));
 if(act=='inventario')$('tinv').innerHTML=L.map(fila).join('')||'<tr><td colspan="12">Sin resultados</td></tr>';
 $('cnt').textContent=L.length+' de '+Object.keys(inv).length+' productos';contar();
 if(act=='apartado'){$('apBtns').innerHTML=Object.entries(CATS).map(([k,v])=>`<button class="b${ap==k?' g':''}" onclick="apSel('${k}')">${v}</button>`).join('');
@@ -200,6 +208,6 @@ if(!ok){render();return alert('No se marcó ningún producto como vendido.'+(sf.
 const msg='Se marcarán como VENDIDOS: '+ok+' producto(s)'+(ya.length?'\nYa estaban vendidos: '+ya.length:'')+(nf.length?'\nNo encontrados: '+nf.length+' ('+lista(nf)+')':'')+(sf.length?'\nSin fecha (NO se marcan como vendidos): '+sf.length+' ('+lista(sf)+')':'')+'\n\n¿Continuar?';
 if(!confirm(msg)){render();return}
 upd(dbr('inventario'),cambios).then(()=>alert('Ventas registradas: '+ok))}catch(e){aviso(e);render()}},30);rd.readAsArrayBuffer(f)}
-Object.assign(window,{apSel,render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,desmarcarTodo,estado,borrar,etiquetas,limpiar,editar,guardar,abrirPago,tipoPago,guardarPago,delPago,cerrar,guardarBase,addRet,delRet,exportar,importar,importarVentas});
+Object.assign(window,{apSel,render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,desmarcarTodo,estado,borrar,etiquetas,limpiar,editar,guardar,abrirPago,tipoPago,guardarPago,delPago,cerrar,guardarBase,addRet,delRet,exportar,importar,importarVentas,limpiarFiltros});
 window.appListo=true;render();
 </script></body></html>
