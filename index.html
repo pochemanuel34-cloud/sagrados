@@ -56,7 +56,8 @@ td select{padding:7px;font-size:14px;margin:0}
 <form onsubmit="guardar(event)"><input type="hidden" id="rid"><select id="rcat" onchange="etiquetas()"></select>
 <input id="rref" placeholder="Referencia" required> <input id="rnom" placeholder="Nombre" required> <input id="rcol" placeholder="Color / Sabor" required> <input id="rmar" placeholder="Marca"> <input id="rtal" placeholder="Talla / Detalle"> <input id="rpre" type="number" min="0" placeholder="Precio" required>
 <select id="rest"><option value="disponible">Disponible</option><option value="sucia">Sucio</option><option value="vendida">Vendido</option></select>
-<button class="b g">Guardar</button> <button type="button" class="b n" onclick="limpiar()">Limpiar</button></form></div></div>
+<label style="white-space:nowrap"><input type="checkbox" id="rmarc" style="margin:0 6px 0 0;width:auto"> Marcar</label>
+<button class="b g" id="btnG">Guardar</button> <button type="button" class="b" style="--c:#d4881f" onclick="registrar()">Registrar</button> <button type="button" class="b n" onclick="limpiar()">Limpiar</button> <span id="regMsg" style="margin-left:10px;color:#148f77;font-weight:bold"></span></form></div></div>
 <div class="sec" id="s-inventario"><div class="card">
 <select id="fest" onchange="render()"><option value="">Todos los estados</option><option value="disponible">Disponible</option><option value="sucia">Sucio</option><option value="vendida">Vendido</option></select> <button class="b n" onclick="limpiarFiltros()">Limpiar filtros</button><br>
 <button class="b g" onclick="exportar('inv')">Descargar Excel</button> <label class="b">Cargar Excel<input type="file" accept=".xlsx,.xls,.csv" onchange="importar(event)" hidden></label>
@@ -67,7 +68,7 @@ td select{padding:7px;font-size:14px;margin:0}
 </main></div>
 <div id="fp"></div>
 <div id="emodal"><div><h3>Editar cliente</h3><label>N.º <input id="e-num" type="number" min="1" placeholder="N.º" style="width:90px"></label><br><input id="e-nom" placeholder="Nombre del cliente"><br><input id="e-tel" placeholder="Teléfono"><br><br><button class="b g" onclick="guardarEdCliente()">Guardar</button> <button class="b n" onclick="cerrarE()">Cancelar</button></div></div>
-<div id="vmodal"><div><h3 id="vt"></h3><p id="vs"></p><button class="b g" onclick="vender('efectivo')">Efectivo</button> <button class="b" onclick="vender('transaccion')">Transferencia</button> <button class="b n" onclick="cerrarV()">Cancelar</button></div></div>
+<div id="vmodal"><div><h3 id="vt"></h3><p id="vs"></p><label>Fecha de la venta <input type="date" id="vfecha"></label><br><br><button class="b g" onclick="vender('efectivo')">Efectivo</button> <button class="b" onclick="vender('transaccion')">Transferencia</button> <button class="b n" onclick="cerrarV()">Cancelar</button></div></div>
 <div id="modal"><div><h3 id="mt"></h3><p id="ms" style="font-weight:bold"></p><div id="mh"></div><hr>
 <div id="mf"><select id="mmedio"><option value="efectivo">Efectivo</option><option value="transaccion">Transacción</option></select>
 <input type="date" id="mfecha"> <input type="number" id="mmonto" placeholder="Monto del abono"><br><br>
@@ -103,7 +104,7 @@ $('s-clientes').innerHTML=`<h3>Compras clientes</h3><div class="card tot" id="T-
 <div id="cl-det" style="display:none"><div class="card" id="cl-head"></div>
 <div class="card"><b>Registrar compra</b><br><input id="cl-prod" list="cl-dl" placeholder="Producto: código, ref o nombre (o escribe otro)" autocomplete="off" oninput="cpSel()" style="min-width:320px"><datalist id="cl-dl"></datalist>
 <input type="number" id="cl-precio" placeholder="Precio" oninput="ctipoCh()"> <select id="cl-tipo" onchange="ctipoCh()"><option value="inmediato">Pago inmediato</option><option value="separe">Plan separe</option><option value="credito">Crédito</option></select>
-<select id="cl-medio"><option value="efectivo">Efectivo</option><option value="transaccion">Transacción</option></select> <input type="date" id="cl-fecha">
+<select id="cl-medio"><option value="efectivo">Efectivo</option><option value="transaccion">Transacción</option></select> <label>Fecha de la venta <input type="date" id="cl-fecha"></label>
 <input type="number" id="cl-abono" placeholder="Abono inicial (0 = sin pago)"> <label id="cl-sinl" style="display:none"><input type="checkbox" id="cl-sin" onchange="ctipoCh()" style="margin:4px"> Se lo llevó sin pago</label>
 <button class="b g" onclick="addCompra()">Registrar compra</button></div>
 <div class="scroll"><table><thead><tr><th>Fecha</th><th>Producto</th><th>Modalidad</th><th>Precio</th><th>Abonado</th><th>Restante</th><th></th></tr></thead><tbody id="cl-tabla"></tbody></table></div></div>`;
@@ -179,21 +180,23 @@ function desmarcarTodo(){const o={};Object.entries(inv).forEach(([id,p])=>{if(p&
 function estado(id,v){const p=inv[id];if(!p)return;if(v=='vendida'){abrirVenta(id);render();return}
 if(p.estado=='vendida'&&pg(p).length&&!confirm('Este producto tiene un pago registrado ('+fmt(suma(pg(p),()=>1))+'). Si cambias el estado, ese pago se borra de Ventas y Caja. ¿Continuar?')){render();return}
 const o={estado:v};if(p.estado=='vendida'){o.pagos=null;o.fechaVenta=null;o.tipoPago='inmediato'}upd(dbr('inventario/'+id),o)}
-function abrirVenta(id){const p=inv[id];if(!p)return;vid=id;$('vt').textContent='Vendido: '+(p.nombre||'');$('vs').textContent='Pago inmediato de '+fmt(p.precio)+'. ¿Cómo pagó?';$('vmodal').style.display='block'}
-function vender(medio){const p=inv[vid];if(!p)return cerrarV();const a=pg(p),f=(p.estado=='vendida'&&a.length==1&&a[0].fecha)||hoy;
+function abrirVenta(id){const p=inv[id];if(!p)return;vid=id;$('vt').textContent='Vendido: '+(p.nombre||'');$('vs').textContent='Pago inmediato de '+fmt(p.precio)+'. ¿Cómo pagó?';$('vfecha').value=(p.estado=='vendida'&&pg(p).length==1&&pg(p)[0].fecha)||hoy;$('vmodal').style.display='block'}
+function vender(medio){const p=inv[vid];if(!p)return cerrarV();const f=$('vfecha').value||hoy;
 upd(dbr('inventario/'+vid),{estado:'vendida',tipoPago:'inmediato',fechaVenta:f,pagos:[{monto:Number(p.precio)||0,fecha:f,medioPago:medio,tipoPago:'inmediato',cuotaNum:1}]});cerrarV()}
 function cerrarV(){$('vmodal').style.display='none';vid=''}
 function anotar(){const S=new Set();Object.values(cli).forEach(c=>Object.values((c&&c.compras)||{}).forEach(k=>{if(k&&k.inv)S.add(k.inv)}));Object.entries(inv).forEach(([id,p])=>{if(p)p._oc=S.has(id)})}
 function borrar(id){if(confirm('¿Eliminar este producto?'))del(dbr('inventario/'+id))}
 function etiquetas(){$('rcol').placeholder='Color / Sabor';$('rtal').placeholder='Talla / Detalle'}
-function limpiar(){document.querySelector('#s-registro form').reset();$('rid').value='';$('regT').textContent='Registrar producto';etiquetas()}
-function editar(id){const p=inv[id];$('rid').value=id;$('rcat').value=p.categoria;$('rref').value=p.referencia;$('rnom').value=p.nombre;$('rcol').value=p.color;$('rmar').value=p.marca||'';$('rtal').value=p.talla||'';$('rpre').value=p.precio;$('rest').value=p.estado;$('regT').textContent='Editar producto';etiquetas();tab('registro')}
-function guardar(e){e.preventDefault();const id=$('rid').value,o={categoria:$('rcat').value,referencia:$('rref').value.trim(),nombre:$('rnom').value.trim(),color:$('rcol').value.trim(),marca:$('rmar').value.trim(),talla:$('rtal').value.trim(),precio:parseFloat($('rpre').value),estado:$('rest').value};
+function limpiar(){document.querySelector('#s-registro form').reset();$('rid').value='';$('regT').textContent='Registrar producto';$('btnG').textContent='Guardar';etiquetas()}
+function editar(id){const p=inv[id];$('rid').value=id;$('rcat').value=p.categoria;$('rref').value=p.referencia;$('rnom').value=p.nombre;$('rcol').value=p.color;$('rmar').value=p.marca||'';$('rtal').value=p.talla||'';$('rpre').value=p.precio;$('rest').value=p.estado;$('regT').textContent='Editar producto';$('btnG').textContent='Actualizar';$('rmarc').checked=!!p.marcado;etiquetas();tab('registro')}
+function guardar(e){e.preventDefault();hacerGuardar(false)}
+function registrar(){if(!document.querySelector('#s-registro form').reportValidity())return;hacerGuardar(true)}
+function hacerGuardar(nuevo){const id=nuevo?'':$('rid').value,o={categoria:$('rcat').value,referencia:$('rref').value.trim(),nombre:$('rnom').value.trim(),color:$('rcol').value.trim(),marca:$('rmar').value.trim(),talla:$('rtal').value.trim(),precio:parseFloat($('rpre').value),estado:$('rest').value,marcado:$('rmarc').checked},cat=o.categoria;let cod='';
 let quiere=o.estado=='vendida';
 if(id){const ab=suma(pg(inv[id]),()=>1);if(o.precio<ab)return alert('El precio no puede ser menor a lo ya abonado ('+fmt(ab)+')');
 if(quiere&&!(inv[id].estado=='vendida'&&pg(inv[id]).length))o.estado=inv[id].estado=='vendida'?'disponible':inv[id].estado;else quiere=false;upd(dbr('inventario/'+id),o);if(quiere)abrirVenta(id)}
-else{if(quiere)o.estado='disponible';const k=push(dbr('inventario')).key;set(dbr('inventario/'+k),{...o,codigo:sigCodigo(),marcado:false,tipoPago:'inmediato',pagos:[]}).then(()=>{if(quiere)abrirVenta(k)})}
-limpiar();tab('inventario')}
+else{if(quiere)o.estado='disponible';const k=push(dbr('inventario')).key;cod=sigCodigo();set(dbr('inventario/'+k),{...o,codigo:cod,tipoPago:'inmediato',pagos:[]}).then(()=>{if(quiere)abrirVenta(k)})}
+limpiar();if(nuevo){$('rcat').value=cat;etiquetas();$('regMsg').textContent='Registrado: '+cod+' · '+o.nombre;setTimeout(()=>$('regMsg').textContent='',4000);$('rref').focus()}else tab('inventario')}
 const TIPO={inmediato:'Pago inmediato',separe:'Plan separe',credito:'Crédito'},
 totC=c=>{const A=Object.values((c&&c.compras)||{}),pr=A.reduce((t,k)=>t+Number(k.precio||0),0),ab=A.reduce((t,k)=>t+suma(pg(k),()=>1),0);return{n:A.length,pr,ab,rest:pr-ab}},
 descK=k=>[k.codigo,k.referencia,k.nombre,k.color,k.talla].filter(Boolean).join(' · ')||k.producto||'';
@@ -283,6 +286,6 @@ if(!ok){render();return alert('No se marcó ningún producto como vendido.'+(sf.
 const msg='Se marcarán como VENDIDOS: '+ok+' producto(s)'+(ya.length?'\nYa estaban vendidos: '+ya.length:'')+(nf.length?'\nNo encontrados: '+nf.length+' ('+lista(nf)+')':'')+(sf.length?'\nSin fecha (NO se marcan como vendidos): '+sf.length+' ('+lista(sf)+')':'')+'\n\n¿Continuar?';
 if(!confirm(msg)){render();return}
 upd(dbr('inventario'),cambios).then(()=>alert('Ventas registradas: '+ok))}catch(e){aviso(e);render()}},30);rd.readAsArrayBuffer(f)}
-Object.assign(window,{apSel,render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,desmarcarTodo,estado,borrar,etiquetas,limpiar,editar,guardar,editarCliente,guardarEdCliente,cerrarE,abrirVenta,vender,cerrarV,addCliente,selCliente,delCliente,cpSel,ctipoCh,addCompra,delCompra,abrirAbono,guardarAbono,delAbono,fIn,fOpen,fCerrar,cerrar,guardarBase,addRet,delRet,exportar,importar,importarVentas,limpiarFiltros});
+Object.assign(window,{apSel,render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,desmarcarTodo,estado,borrar,etiquetas,limpiar,editar,guardar,registrar,editarCliente,guardarEdCliente,cerrarE,abrirVenta,vender,cerrarV,addCliente,selCliente,delCliente,cpSel,ctipoCh,addCompra,delCompra,abrirAbono,guardarAbono,delAbono,fIn,fOpen,fCerrar,cerrar,guardarBase,addRet,delRet,exportar,importar,importarVentas,limpiarFiltros});
 window.appListo=true;render();
 </script></body></html>
