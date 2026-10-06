@@ -43,27 +43,27 @@ td select{padding:7px;font-size:14px;margin:0}
 #modal{display:none;position:fixed;inset:0;background:#0007;z-index:50;overflow:auto}
 #modal>div{background:#fff;max-width:560px;margin:30px auto;padding:20px;border-radius:12px}
 #vmodal,#emodal{display:none;position:fixed;inset:0;background:#0007;z-index:50;overflow:auto}#vmodal>div,#emodal>div{background:#fff;max-width:420px;margin:60px auto;padding:20px;border-radius:12px;text-align:center}
-.adm.off{opacity:.45}
+.adm.off{display:none}#btnAdmin{background:none;border:0;color:#888;font-size:20px;line-height:1;opacity:.1;cursor:pointer;padding:2px 10px}#btnAdmin:hover{opacity:.45}#btnAdmin.on{font-size:14px;opacity:1;color:#4a2c6d;text-decoration:underline}
 #cnt{font-weight:600;color:#4a2c6d;margin-left:8px}
 @media(max-width:600px){.b,nav button{padding:11px 15px;font-size:15px}header{font-size:19px}}
 </style></head><body>
 <div id="login" class="card"><h2>Sagrados</h2><input type="password" id="pw" placeholder="Contraseña" onkeydown="if(event.key=='Enter')entrar()"><br><button class="b" onclick="entrar()">Ingresar</button><p id="pwerr" style="color:#c0392b;display:none">❌ Contraseña incorrecta</p></div>
 <div id="app" style="display:none">
-<header><b>Sagrados · Inventario</b><button class="b n" id="btnAdmin" onclick="activarAdmin()">Activar como Administrador</button></header>
+<header><b>Sagrados · Inventario</b></header>
 <nav id="nav"></nav>
 <main>
 <div class="sec" id="s-registro"><div class="card"><h3 id="regT">Registrar producto</h3>
 <form onsubmit="guardar(event)"><input type="hidden" id="rid"><select id="rcat" onchange="etiquetas()"></select>
 <input id="rref" placeholder="Referencia" required> <input id="rnom" placeholder="Nombre" required> <input id="rcol" placeholder="Color / Sabor" required> <input id="rmar" placeholder="Marca"> <input id="rtal" placeholder="Talla / Detalle"> <input id="rpre" type="number" min="0" placeholder="Precio" required>
-<select id="rest"><option value="disponible">Disponible</option><option value="sucia">Sucio</option><option value="vendida">Vendido</option><option value="credito">Crédito</option><option value="separe">Plan separe</option></select>
+<select id="rest"><option value="disponible">Disponible</option><option value="sucia">Sucio</option><option value="vendida">Vendido</option></select>
+<label style="white-space:nowrap">Cantidad <input id="rcan" type="number" min="1" max="200" value="1" style="width:80px"></label>
 <label style="white-space:nowrap"><input type="checkbox" id="rmarc" style="margin:0 6px 0 0;width:auto"> Marcar</label>
-<button class="b g" id="btnG">Guardar</button> <button type="button" class="b" style="--c:#d4881f" onclick="registrar()">Registrar</button> <button type="button" class="b n" onclick="limpiar()">Limpiar</button> <span id="regMsg" style="margin-left:10px;color:#148f77;font-weight:bold"></span></form></div></div>
+<button class="b g" id="btnG">Guardar</button> <button type="button" class="b" style="--c:#d4881f" onclick="registrar()">Registrar</button> <button type="button" class="b n" onclick="limpiar()">Limpiar</button> <label class="b" style="--c:#2f7fd1">Cargar Excel<input type="file" accept=".xlsx,.xls,.csv" onchange="importar(event)" hidden></label> <span id="regMsg" style="margin-left:10px;color:#148f77;font-weight:bold"></span></form></div></div>
 <div class="sec" id="s-inventario"><div class="card">
-<select id="fest" onchange="render()"><option value="">Todos los estados</option><option value="disponible">Disponible</option><option value="sucia">Sucio</option><option value="vendida">Vendido</option><option value="credito">Crédito</option><option value="separe">Plan separe</option></select> <label>Fecha de venta: desde <input type="date" id="fdesde" onchange="render()"></label> <label>hasta <input type="date" id="fhasta" onchange="render()"></label> <button class="b n" onclick="limpiarFiltros()">Limpiar filtros</button><br>
-<button class="b g" onclick="exportar('inv')">Descargar Excel</button> <label class="b">Cargar Excel<input type="file" accept=".xlsx,.xls,.csv" onchange="importar(event)" hidden></label>
-<label class="b" style="--c:#d4881f">Cargar ventas (Excel)<input type="file" accept=".xlsx,.xls,.csv" onchange="importarVentas(event)" hidden></label> <select id="vmedio" title="Medio de pago de las ventas cargadas"><option value="efectivo">Ventas en efectivo</option><option value="transaccion">Ventas por transacción</option></select>
-<button class="b r adm off" onclick="borrarTodo()">Eliminar todo</button> <button class="b n adm off" onclick="cambiarClave()">Cambiar clave</button> <span id="cnt"></span> <b class="mcnt" style="color:#5b2a86;margin-left:10px"></b> <button class="b n" onclick="desmarcarTodo()">Desmarcar todo</button></div>
-<div class="scroll"><table><thead><tr><th>Marcar</th><th>Código</th><th>Categoría</th><th>Ref</th><th>Nombre</th><th>Color/Sabor</th><th>Marca</th><th>Talla/Detalle</th><th>Precio</th><th>Estado</th><th>Pago</th><th>Fecha</th><th></th></tr><tr class="frow"><th></th><th><input id="f-codigo" placeholder="Buscar" autocomplete="off" oninput="fIn('codigo')" onfocus="fOpen('codigo')" onblur="fCerrar()"></th><th><input id="f-categoria" placeholder="Buscar" autocomplete="off" oninput="fIn('categoria')" onfocus="fOpen('categoria')" onblur="fCerrar()"></th><th><input id="f-referencia" placeholder="Buscar" autocomplete="off" oninput="fIn('referencia')" onfocus="fOpen('referencia')" onblur="fCerrar()"></th><th><input id="f-nombre" placeholder="Buscar" autocomplete="off" oninput="fIn('nombre')" onfocus="fOpen('nombre')" onblur="fCerrar()"></th><th><input id="f-color" placeholder="Buscar" autocomplete="off" oninput="fIn('color')" onfocus="fOpen('color')" onblur="fCerrar()"></th><th><input id="f-marca" placeholder="Buscar" autocomplete="off" oninput="fIn('marca')" onfocus="fOpen('marca')" onblur="fCerrar()"></th><th><input id="f-talla" placeholder="Buscar" autocomplete="off" oninput="fIn('talla')" onfocus="fOpen('talla')" onblur="fCerrar()"></th><th><input id="f-precio" placeholder="Buscar" autocomplete="off" oninput="fIn('precio')" onfocus="fOpen('precio')" onblur="fCerrar()"></th><th></th><th></th><th><input id="f-fecha" placeholder="Buscar" autocomplete="off" oninput="fIn('fecha')" onfocus="fOpen('fecha')" onblur="fCerrar()"></th><th></th></tr></thead><tbody id="tinv"></tbody></table></div></div>
+<select id="fest" onchange="render()"><option value="">Todos los estados</option><option value="disponible">Disponible</option><option value="sucia">Sucio</option><option value="vendida">Vendido</option><option value="credito">Crédito</option><option value="separe">Plan separe</option></select> <button class="b n" onclick="limpiarFiltros()">Limpiar filtros</button><br>
+<button class="b g" onclick="exportar('inv')">Descargar Excel</button> <span id="cnt"></span> <b class="mcnt" style="color:#5b2a86;margin-left:10px"></b></div>
+<div class="scroll"><table><thead><tr><th>Marcar</th><th>Código</th><th>Categoría</th><th>Ref</th><th>Nombre</th><th>Color/Sabor</th><th>Marca</th><th>Talla/Detalle</th><th>Precio</th><th>Estado</th><th>Pago</th><th>Fecha</th><th></th></tr><tr class="frow"><th></th><th><input id="f-codigo" placeholder="Buscar" autocomplete="off" oninput="fIn('codigo')" onfocus="fOpen('codigo')" onblur="fCerrar()"></th><th><input id="f-categoria" placeholder="Buscar" autocomplete="off" oninput="fIn('categoria')" onfocus="fOpen('categoria')" onblur="fCerrar()"></th><th><input id="f-referencia" placeholder="Buscar" autocomplete="off" oninput="fIn('referencia')" onfocus="fOpen('referencia')" onblur="fCerrar()"></th><th><input id="f-nombre" placeholder="Buscar" autocomplete="off" oninput="fIn('nombre')" onfocus="fOpen('nombre')" onblur="fCerrar()"></th><th><input id="f-color" placeholder="Buscar" autocomplete="off" oninput="fIn('color')" onfocus="fOpen('color')" onblur="fCerrar()"></th><th><input id="f-marca" placeholder="Buscar" autocomplete="off" oninput="fIn('marca')" onfocus="fOpen('marca')" onblur="fCerrar()"></th><th><input id="f-talla" placeholder="Buscar" autocomplete="off" oninput="fIn('talla')" onfocus="fOpen('talla')" onblur="fCerrar()"></th><th><input id="f-precio" placeholder="Buscar" autocomplete="off" oninput="fIn('precio')" onfocus="fOpen('precio')" onblur="fCerrar()"></th><th></th><th></th><th><input id="f-fecha" placeholder="Buscar" autocomplete="off" oninput="fIn('fecha')" onfocus="fOpen('fecha')" onblur="fCerrar()"></th><th></th></tr></thead><tbody id="tinv"></tbody></table></div>
+<div id="admBar" style="margin-top:40px;text-align:right"><button class="b n adm off" onclick="desmarcarTodo()">Desmarcar todo</button> <button class="b n adm off" onclick="cambiarClave()">Cambiar clave</button> <button class="b r adm off" onclick="borrarTodo()">Eliminar todo</button> <button id="btnAdmin" title="Administrador" onclick="activarAdmin()">·</button></div></div>
 <div class="sec" id="s-apartado"></div><div class="sec" id="s-clientes"></div><div class="sec" id="s-ventas"></div><div class="sec" id="s-caja"></div><div class="sec" id="s-compras"></div><div class="sec" id="s-total"></div>
 </main></div>
 <div id="fp"></div>
@@ -85,7 +85,7 @@ suma=(a,f)=>a.filter(f).reduce((s,x)=>s+Number(x.monto||0),0),
 cd=(l,v,s)=>`<div>${l}<b>${fmt(v)}</b><small>${s||''}</small></div>`,
 CATS={dama:'Dama',caballero:'Caballero',ninos:'Niños',calzado:'Calzado',sagrados:'Sagrados','accesorios-religioso':'Accesorios-Religioso',perfumes:'Perfumes',helados:'Helados'},
 EST={disponible:'Disponible',sucia:'Sucio',vendida:'Vendido'},ESTV={vendida:'Vendido',credito:'Crédito',separe:'Plan separe'},
-TABS=[['registro','Registro'],['inventario','Inventario'],['apartado','Apartado'],['clientes','Compras clientes'],['ventas','Ventas'],['caja','Caja Registradora'],['compras','Compras'],['total','Total']],
+TABS=[['registro','Registro'],['inventario','Inventario'],['clientes','Compras clientes'],['ventas','Ventas'],['caja','Caja Registradora'],['compras','Compras'],['total','Total']],
 esAdmin=()=>admin;
 let vid='',cli={},cs='',ac='',ak='',CPM=new Map(),inv={},caja={bases:{},retiros:[]},comp={retiros:[]},clave='1234',pid=null,admin=false,ap='dama';
 function aviso(e){const m=String(e&&e.message||e);let d=$('aviso');if(!d){d=document.createElement('div');d.id='aviso';d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99;background:#c0392b;color:#fff;padding:10px;text-align:center;cursor:pointer';d.onclick=()=>d.remove();document.body.append(d)}d.textContent=/permission/i.test(m)?'Firebase rechazó el acceso: en Realtime Database → Reglas pega las reglas y presiona PUBLICAR.':'Error de Firebase: '+m}
@@ -127,7 +127,7 @@ function FCOLS(){return{codigo:p=>p.codigo,categoria:p=>p.categoria||'',referenc
 function fk(v){return String(v??'').trim().toLowerCase()}
 let FS={},fcol='';
 function lab(c,r){return c=='categoria'?(CATS[r]||r||'(vacío)'):c=='precio'?fmt(r):(String(r??'').trim()||'(vacío)')}
-function pasa(p,skip){const fe=$('fest').value;if(fe&&ee(p)!=fe)return false;const a1=$('fdesde').value,b1=$('fhasta').value;if(a1||b1){const d=fv(p);if(!d||(a1&&d<a1)||(b1&&d>b1))return false}const C=FCOLS();
+function pasa(p,skip){const fe=$('fest').value;if(fe&&ee(p)!=fe)return false;const C=FCOLS();
 return Object.keys(C).every(c=>{if(c==skip)return true;const f=FS[c];if(!f||!f.v)return true;const r=C[c](p);if(f.m=='x')return f.v.includes(fk(r)||'__');return needles(c,fk(f.v)).some(n=>fk(lab(c,r)+' '+r).includes(n))})}
 function fPanel(){if(!fcol)return;const c=fcol,el=$('f-'+c),fp=$('fp'),f=FS[c],t=f&&f.m=='t'?fk(f.v):'',C=FCOLS(),m=new Map();
 Object.values(inv).forEach(p=>{if(!p||!pasa(p,c))return;const r=C[c](p),k=fk(r)||'__',o=m.get(k)||{l:lab(c,r),n:0};o.n++;m.set(k,o)});
@@ -142,7 +142,7 @@ if(f.v.length){FS[c]=f;$('f-'+c).value=f.l.join(', ')}else{delete FS[c];$('f-'+c
 function fCerrar(){setTimeout(()=>{const a=document.activeElement;if(!a||!a.id||a.id.indexOf('f-')!=0){fcol='';$('fp').style.display='none'}},150)}
 $('fp').addEventListener('mousedown',e=>{e.preventDefault();const d=e.target.closest('[data-k]');if(d&&fcol)fSel(fcol,d.dataset.k,d.dataset.l||'')});
 window.addEventListener('scroll',e=>{if(fcol&&!(e.target&&e.target.id=='fp'))fPanel()},true);
-function limpiarFiltros(){FS={};fcol='';$('fp').style.display='none';$('fest').value=$('fdesde').value=$('fhasta').value='';Object.keys(FCOLS()).forEach(c=>$('f-'+c).value='');render()}
+function limpiarFiltros(){FS={};fcol='';$('fp').style.display='none';$('fest').value='';Object.keys(FCOLS()).forEach(c=>$('f-'+c).value='');render()}
 function render(){
 const act=(TABS.find(([t])=>$('s-'+t).classList.contains('on'))||[])[0];
 if(act=='clientes')clientes();if(ac&&$('modal').style.display=='block')refAbono();
@@ -154,7 +154,8 @@ const AL=Object.entries(inv).filter(([,p])=>p&&p.categoria==ap);
 $('tap').innerHTML=AL.map(fila).join('')||'<tr><td colspan="13">No hay productos en esta categoría</td></tr>';
 $('apCnt').textContent=CATS[ap]+': '+AL.length+' productos';}
 const dv=$('d-ventas').value,mv=$('m-ventas').value,blk=(t,k)=>{const a=k?P.filter(x=>F(x).startsWith(k)):[];return cd(t,suma(a,()=>1),'Efectivo '+fmt(suma(a,ef))+' · Transacción '+fmt(suma(a,tr)))};
-$('T-ventas').innerHTML=blk('Día '+dv,dv)+blk('Mes '+mv,mv)+blk('Año '+mv.slice(0,4),mv.slice(0,4));
+const kk=(t,k)=>{const a=k?P.filter(x=>F(x).startsWith(k)):[];return cd('Efectivo · '+t,suma(a,ef))+cd('Transferencia · '+t,suma(a,tr))};
+$('T-ventas').innerHTML=blk('Día '+dv,dv)+blk('Mes '+mv,mv)+blk('Año '+mv.slice(0,4),mv.slice(0,4))+kk('día',dv)+kk('mes',mv)+kk('año',mv.slice(0,4));
 $('t-ventas').innerHTML=P.filter(x=>mv&&F(x).startsWith(mv)).sort((a,b)=>F(a).localeCompare(F(b))).map(x=>`<tr><td>${x.fecha}</td><td>${esc(x.ref)} ${esc(x.nombre)}</td><td>${x.tipoPago}</td><td>${x.medioPago}</td><td>${fmt(x.monto)}</td></tr>`).join('');
 const dc=$('d-caja').value,mc=$('m-caja').value,Rc=Object.values(caja.retiros||{}),bs=caja.bases||{},cy=cajaCarry(dc,P),ex=Number(bs[dc]||0),bd=cy+ex,
 bm=Object.entries(bs).filter(([k])=>mc&&k.startsWith(mc)).reduce((s,[,v])=>s+Number(v),0),
@@ -170,7 +171,7 @@ const mt=$('m-total').value,a=P.filter(x=>mt&&F(x).startsWith(mt)),e=suma(a,ef),
 $('T-total').innerHTML=cd('Efectivo + Transacciones',e+t,'Efectivo '+fmt(e)+' · Transacción '+fmt(t))+cd('Retiros (caja)',r)+cd('Compra de mercancía',c)+cd('Total del mes',e+t-r-c,'ventas − retiros − compras')}
 function entrar(){if($('pw').value==clave){$('login').style.display='none';$('app').style.display='block';admin=false;tab('inventario');aplicarAdmin()}else $('pwerr').style.display='block'}
 function tab(k){TABS.forEach(([t])=>{$('s-'+t).classList.toggle('on',t==k);$('n-'+t).classList.toggle('on',t==k)});render()}
-function aplicarAdmin(){document.querySelectorAll('.adm').forEach(e=>e.classList.toggle('off',!admin));$('btnAdmin').textContent=admin?'Modo administrador activo (clic para salir)':'Activar como Administrador'}
+function aplicarAdmin(){document.querySelectorAll('.adm').forEach(e=>e.classList.toggle('off',!admin));const b=$('btnAdmin');b.textContent=admin?'Desactivar administrador':'·';b.classList.toggle('on',admin)}
 function activarAdmin(){if(admin){admin=false;aplicarAdmin();return}if(confirm('¿Activar modo administrador? Podrás cambiar la contraseña y eliminar todo el inventario.')){admin=true;aplicarAdmin()}}
 function cambiarClave(){if(!admin)return alert('Primero activa el modo administrador');const n=prompt('Nueva contraseña:');if(n&&n.trim()){set(dbr('config/password'),n.trim());alert('Contraseña actualizada en todos los equipos')}}
 function borrarTodo(){if(!esAdmin())return alert('Primero activa el modo administrador');if(confirm('¿Eliminar TODO el inventario? No se puede deshacer.'))del(dbr('inventario'))}
@@ -179,7 +180,7 @@ function sigCodigo(){ultimo=Math.max(ultimo,...Object.values(inv).map(p=>parseIn
 function apSel(k){ap=k;render()}
 function contar(){const n=Object.values(inv).filter(p=>p&&p.marcado).length;document.querySelectorAll('.mcnt').forEach(e=>e.textContent='Marcados: '+n)}
 function marcar(id,v){if(inv[id])inv[id].marcado=v;contar();upd(dbr('inventario/'+id),{marcado:v})}
-function desmarcarTodo(){const o={};Object.entries(inv).forEach(([id,p])=>{if(p&&p.marcado){o[id+'/marcado']=false;p.marcado=false}});document.querySelectorAll('#tinv input[type=checkbox],#tap input[type=checkbox]').forEach(c=>c.checked=false);contar();if(Object.keys(o).length)upd(dbr('inventario'),o)}
+function desmarcarTodo(){if(!esAdmin())return;const o={};Object.entries(inv).forEach(([id,p])=>{if(p&&p.marcado){o[id+'/marcado']=false;p.marcado=false}});document.querySelectorAll('#tinv input[type=checkbox],#tap input[type=checkbox]').forEach(c=>c.checked=false);contar();if(Object.keys(o).length)upd(dbr('inventario'),o)}
 function estado(id,v){const p=inv[id];if(!p)return;if(p._cl){alert('Este producto está en una compra de cliente. Se maneja desde Compras clientes.');render();return}if(v=='vendida'){abrirVenta(id);render();return}
 if(p.estado=='vendida'&&pg(p).length&&!confirm('Este producto tiene un pago registrado ('+fmt(suma(pg(p),()=>1))+'). Si cambias el estado, ese pago se borra de Ventas y Caja. ¿Continuar?')){render();return}
 const o={estado:v};if(p.estado=='vendida'){o.pagos=null;o.fechaVenta=null;o.tipoPago='inmediato'}upd(dbr('inventario/'+id),o)}
@@ -195,12 +196,12 @@ function limpiar(){document.querySelector('#s-registro form').reset();$('rid').v
 function editar(id){const p=inv[id];$('rid').value=id;$('rcat').value=p.categoria;$('rref').value=p.referencia;$('rnom').value=p.nombre;$('rcol').value=p.color;$('rmar').value=p.marca||'';$('rtal').value=p.talla||'';$('rpre').value=p.precio;$('rest').value=p.estado;$('regT').textContent='Editar producto';$('btnG').textContent='Actualizar';$('rmarc').checked=!!p.marcado;etiquetas();tab('registro')}
 function guardar(e){e.preventDefault();hacerGuardar(false)}
 function registrar(){if(!document.querySelector('#s-registro form').reportValidity())return;hacerGuardar(true)}
-function hacerGuardar(nuevo){const id=nuevo?'':$('rid').value,o={categoria:$('rcat').value,referencia:$('rref').value.trim(),nombre:$('rnom').value.trim(),color:$('rcol').value.trim(),marca:$('rmar').value.trim(),talla:$('rtal').value.trim(),precio:parseFloat($('rpre').value),estado:$('rest').value,marcado:$('rmarc').checked},cat=o.categoria;let cod='';
+function hacerGuardar(nuevo){const id=nuevo?'':$('rid').value,o={categoria:$('rcat').value,referencia:$('rref').value.trim(),nombre:$('rnom').value.trim(),color:$('rcol').value.trim(),marca:$('rmar').value.trim(),talla:$('rtal').value.trim(),precio:parseFloat($('rpre').value),estado:$('rest').value,marcado:$('rmarc').checked},cat=o.categoria;let cod='',n=1;
 let quiere=o.estado=='vendida';
 if(id){const ab=suma(pg(inv[id]),()=>1);if(o.precio<ab)return alert('El precio no puede ser menor a lo ya abonado ('+fmt(ab)+')');
 if(inv[id]._cl){o.estado=inv[id].estado;quiere=false}else if(quiere&&!(inv[id].estado=='vendida'&&pg(inv[id]).length))o.estado=inv[id].estado=='vendida'?'disponible':inv[id].estado;else quiere=false;upd(dbr('inventario/'+id),o);if(quiere)abrirVenta(id)}
-else{if(quiere)o.estado='disponible';const k=push(dbr('inventario')).key;cod=sigCodigo();set(dbr('inventario/'+k),{...o,codigo:cod,tipoPago:'inmediato',pagos:[]}).then(()=>{if(quiere)abrirVenta(k)})}
-limpiar();if(nuevo){$('rcat').value=cat;etiquetas();$('regMsg').textContent='Registrado: '+cod+' · '+o.nombre;setTimeout(()=>$('regMsg').textContent='',4000);$('rref').focus()}else tab('inventario')}
+else{n=Math.max(1,Math.min(200,parseInt($('rcan').value)||1));if(quiere&&n>1)return alert('Para registrar varios a la vez deja el estado en Disponible o Sucio');if(quiere)o.estado='disponible';const lote={},ks=[];for(let i=0;i<n;i++){const k=push(dbr('inventario')).key;ks.push(k);lote[k]={...o,codigo:sigCodigo(),tipoPago:'inmediato',pagos:[]}}cod=lote[ks[0]].codigo+(n>1?' a '+lote[ks[n-1]].codigo:'');upd(dbr('inventario'),lote).then(()=>{if(quiere)abrirVenta(ks[0])})}
+limpiar();if(nuevo){$('rcat').value=cat;etiquetas();$('regMsg').textContent='Registrado: '+cod+' · '+o.nombre+(n>1?' ('+n+' unidades)':'');setTimeout(()=>$('regMsg').textContent='',4000);$('rref').focus()}else tab('inventario')}
 const TIPO={inmediato:'Pago inmediato',separe:'Plan separe',credito:'Crédito'},
 totC=c=>{const A=Object.values((c&&c.compras)||{}),pr=A.reduce((t,k)=>t+Number(k.precio||0),0),ab=A.reduce((t,k)=>t+suma(pg(k),()=>1),0);return{n:A.length,pr,ab,rest:pr-ab}},
 descK=k=>[k.codigo,k.referencia,k.nombre,k.color,k.talla].filter(Boolean).join(' · ')||k.producto||'';
@@ -264,35 +265,12 @@ if(t=='ventas')xl('ventas_'+m,{Ventas:vr});
 if(t=='caja')xl('caja_'+m,{Efectivo:vr.filter(x=>x.Medio=='efectivo'),Retiros:rr(Rc),Bases:Object.entries(caja.bases||{}).filter(([k])=>m&&k.startsWith(m)).map(([k,v])=>({Fecha:k,Base:v}))});
 if(t=='compras')xl('compras_'+m,{Transacciones:vr.filter(x=>x.Medio=='transaccion'),Compras:rr(Rp)});
 if(t=='total'){const e=suma(P.filter(im),x=>x.medioPago=='efectivo'),tt=suma(P.filter(im),x=>x.medioPago=='transaccion'),r=suma(Rc,im),c=suma(Rp,im);xl('total_'+m,{Total:[{Concepto:'Efectivo',Valor:e},{Concepto:'Transacciones',Valor:tt},{Concepto:'Retiros (caja)',Valor:r},{Concepto:'Compra de mercancía',Valor:c},{Concepto:'Total del mes',Valor:e+tt-r-c}]})}}
-function importar(ev){const f=ev.target.files[0];if(!f)return;ev.target.value='';$('cnt').textContent='Leyendo Excel...';const rd=new FileReader();
+function importar(ev){const f=ev.target.files[0];if(!f)return;ev.target.value='';$('regMsg').textContent='Leyendo Excel...';const rd=new FileReader();
 rd.onload=x=>setTimeout(()=>{const wb=XLSX.read(x.target.result,{type:'array'}),kc=s=>Object.keys(CATS).find(k=>CATS[k].toLowerCase()==String(s).toLowerCase()),lote={};let n=0;
 wb.SheetNames.forEach(sn=>XLSX.utils.sheet_to_json(wb.Sheets[sn]).forEach(o=>{const nk=t=>String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''),N={};Object.keys(o).forEach(k=>N[nk(k)]=o[k]);const g=(...a)=>{for(const k of a){const v=N[nk(k)];if(v!==undefined&&String(v).trim()!=='')return String(v).trim()}return ''};if(!g('Referencia','Ref','Referencias','Reference')&&!g('Nombre','Producto','Descripcion'))return;const es=g('Estado').toLowerCase();
 lote[push(dbr('inventario')).key]={categoria:kc(g('Categoría','Categoria'))||kc(sn)||'dama',codigo:g('Código','Codigo')||sigCodigo(),referencia:g('Referencia','Ref','Referencias','Reference'),nombre:g('Nombre','Producto','Descripcion'),color:g('Color/Sabor','Color','Sabor'),marca:g('Marca'),talla:g('Talla/Detalle','Talla','Detalle'),precio:parseFloat(g('Precio','Valor'))||0,estado:es=='sucia'?'sucia':'disponible',marcado:false,tipoPago:'inmediato'};n++}));
-if(!n){render();return alert('No se encontraron productos en el Excel')}
-upd(dbr('inventario'),lote).then(()=>alert('Productos importados: '+n))},30);rd.readAsArrayBuffer(f)}
-function importarVentas(ev){const f=ev.target.files[0];if(!f)return;ev.target.value='';$('cnt').textContent='Leyendo Excel de ventas...';const rd=new FileReader();
-rd.onload=x=>setTimeout(()=>{try{
-const nk=t=>String(t??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''),
-z=n=>String(n).padStart(2,'0'),
-pf=v=>{if(v instanceof Date&&!isNaN(v))return v.toLocaleDateString('en-CA');if(typeof v=='number'&&v>20000&&v<80000){const d=XLSX.SSF.parse_date_code(v);return d.y+'-'+z(d.m)+'-'+z(d.d)}
-const s=String(v??'').trim();if(!s)return '';let m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return m[1]+'-'+z(m[2])+'-'+z(m[3]);m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);if(m)return(m[3].length==2?'20'+m[3]:m[3])+'-'+z(m[2])+'-'+z(m[1]);const d=new Date(s);return isNaN(d)?'':d.toLocaleDateString('en-CA')};
-const wb=XLSX.read(x.target.result,{type:'array'}),prods=Object.entries(inv).filter(([,p])=>p&&!p._cl),usados=new Set(),cambios={},nf=[],ya=[],sf=[];let ok=0;
-wb.SheetNames.forEach(sn=>{const R=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:''}),hi=R.findIndex(r=>r.filter(c=>String(c).trim()!=='').length>=2);if(hi<0)return;
-const H=R[hi].map(nk);let last=H.length-1;while(last>0&&!H[last])last--;const ci=H.findIndex(h=>h=='fecha'||h=='fechaventa'||h=='fechadeventa'),di=ci>=0?ci:last,
-col=(...a)=>{for(const k of a){const i=H.indexOf(nk(k));if(i>=0&&i!=di)return i}return -1},
-iC=col('Código','Codigo'),iR=col('Referencia','Ref'),iN=col('Nombre','Producto'),iCo=col('Color/Sabor','Color','Sabor'),iM=col('Marca'),iT=col('Talla/Detalle','Talla','Detalle'),iMe=col('Medio','Medio de pago','Medio pago');
-R.slice(hi+1).forEach(r=>{const v=i=>i>=0?nk(r[i]):'',cod=v(iC),ref=v(iR),nom=v(iN);if(!cod&&!ref&&!nom)return;
-const rot=[iC>=0&&String(r[iC]).trim(),iR>=0&&String(r[iR]).trim(),iN>=0&&String(r[iN]).trim()].filter(Boolean).join(' '),fe=pf(r[di]);if(!fe){sf.push(rot);return}
-const cand=prods.filter(([id,p])=>!usados.has(id)&&(cod?nk(p.codigo)==cod:(!ref||nk(p.referencia)==ref)&&(!nom||nk(p.nombre)==nom)&&(!v(iCo)||nk(p.color)==v(iCo))&&(!v(iM)||nk(p.marca)==v(iM))&&(!v(iT)||nk(p.talla)==v(iT))));
-const libre=cand.find(([,p])=>p.estado!='vendida');if(!libre){(cand.length?ya:nf).push(rot);return}
-const[id,p]=libre;usados.add(id);
-const mv=iMe>=0?nk(r[iMe]):'',medio=/transac/.test(mv)?'transaccion':/efectivo/.test(mv)?'efectivo':$('vmedio').value;
-cambios[id+'/estado']='vendida';cambios[id+'/tipoPago']='inmediato';cambios[id+'/fechaVenta']=fe;cambios[id+'/pagos']=[{monto:Number(p.precio)||0,fecha:fe,medioPago:medio,tipoPago:'inmediato',cuotaNum:1}];ok++})});
-const lista=a=>a.slice(0,8).join(', ')+(a.length>8?'...':'');
-if(!ok){render();return alert('No se marcó ningún producto como vendido.'+(sf.length?'\nSin fecha en la última columna ('+sf.length+'): '+lista(sf):'')+(nf.length?'\nNo encontrados ('+nf.length+'): '+lista(nf):'')+(ya.length?'\nYa estaban vendidos ('+ya.length+'): '+lista(ya):''))}
-const msg='Se marcarán como VENDIDOS: '+ok+' producto(s)'+(ya.length?'\nYa estaban vendidos: '+ya.length:'')+(nf.length?'\nNo encontrados: '+nf.length+' ('+lista(nf)+')':'')+(sf.length?'\nSin fecha (NO se marcan como vendidos): '+sf.length+' ('+lista(sf)+')':'')+'\n\n¿Continuar?';
-if(!confirm(msg)){render();return}
-upd(dbr('inventario'),cambios).then(()=>alert('Ventas registradas: '+ok))}catch(e){aviso(e);render()}},30);rd.readAsArrayBuffer(f)}
-Object.assign(window,{apSel,render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,desmarcarTodo,estado,borrar,etiquetas,limpiar,editar,guardar,registrar,verCliente,editarCliente,guardarEdCliente,cerrarE,abrirVenta,vender,cerrarV,addCliente,selCliente,delCliente,cpSel,ctipoCh,addCompra,delCompra,abrirAbono,guardarAbono,delAbono,fIn,fOpen,fCerrar,cerrar,guardarBase,addRet,delRet,exportar,importar,importarVentas,limpiarFiltros});
+if(!n){$('regMsg').textContent='';render();return alert('No se encontraron productos en el Excel')}
+upd(dbr('inventario'),lote).then(()=>{$('regMsg').textContent='Productos importados: '+n;setTimeout(()=>$('regMsg').textContent='',5000)})},30);rd.readAsArrayBuffer(f)}
+Object.assign(window,{apSel,render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,desmarcarTodo,estado,borrar,etiquetas,limpiar,editar,guardar,registrar,verCliente,editarCliente,guardarEdCliente,cerrarE,abrirVenta,vender,cerrarV,addCliente,selCliente,delCliente,cpSel,ctipoCh,addCompra,delCompra,abrirAbono,guardarAbono,delAbono,fIn,fOpen,fCerrar,cerrar,guardarBase,addRet,delRet,exportar,importar,limpiarFiltros});
 window.appListo=true;render();
 </script></body></html>
