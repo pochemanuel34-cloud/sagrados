@@ -25,6 +25,7 @@ th{background:#4a2c6d;color:#fff;padding:12px 8px;text-align:left}
 td{border-bottom:1px solid #eee;padding:8px;text-align:left}
 tr:hover td{background:#f3eff8}
 #fp{display:none;position:fixed;z-index:60;background:#fff;border:1px solid #c9c3d3;border-radius:8px;box-shadow:0 4px 14px #0003;max-height:260px;overflow:auto}#fp div{padding:7px 10px;cursor:pointer;font-size:14px}#fp div:hover{background:#efe9f6}#fp small{color:#777}
+.tablita summary{cursor:pointer;font-size:16px}.tablita input,.tablita select{padding:5px 6px;font-size:13px;margin:0}.tablita input[type=checkbox]{width:auto}
 .frow th{background:#6b4a91;padding:4px}.frow input,.frow select{width:100%;min-width:90px;margin:0;padding:6px 8px;font-size:13px;box-sizing:border-box}
 tr.sucia td{background:#ffb3b3}tr.vendida td{background:#fff08a}tr.credito td{background:#ffd9a8}tr.separe td{background:#cfe3ff}
 td .b{padding:7px 12px;font-size:15px;margin:2px}
@@ -58,7 +59,10 @@ td select{padding:7px;font-size:14px;margin:0}
 <label style="white-space:nowrap">Cantidad <input id="rcan" type="number" min="1" max="200" value="1" style="width:80px"></label>
 <label style="white-space:nowrap"><input type="checkbox" id="rmarc" style="margin:0 6px 0 0;width:auto"> Marcar</label>
 <button class="b g" id="btnG">Guardar</button> <button type="button" class="b" style="--c:#d4881f" onclick="registrar()">Registrar</button> <button type="button" class="b" style="--c:#2f7fd1" onclick="agregarCola()">Agregar a la lista</button> <button type="button" class="b n" onclick="limpiar()">Limpiar</button> <label class="b" style="--c:#2f7fd1">Cargar Excel<input type="file" accept=".xlsx,.xls,.csv" onchange="importar(event)" hidden></label> <span id="regMsg" style="margin-left:10px;color:#148f77;font-weight:bold"></span></form></div>
-<div class="card" id="cola-card" style="display:none"><h3>Lista por registrar <small id="cola-n"></small></h3><div class="scroll"><table><thead><tr><th>#</th><th>Categoría</th><th>Ref</th><th>Nombre</th><th>Color/Sabor</th><th>Marca</th><th>Talla/Detalle</th><th>Precio</th><th>Estado</th><th>Cant.</th><th></th></tr></thead><tbody id="cola-t"></tbody></table></div><br><button class="b g" onclick="registrarCola()">Registrar todos</button> <button class="b n" onclick="vaciarCola()">Vaciar lista</button> <small>Los productos del Excel quedan aquí hasta que pulses "Registrar todos".</small></div></div>
+<div class="card" id="cola-card" style="display:none"><h3>Registrar por tablitas <small id="cola-n"></small></h3>
+<div>Una tablita por cada dato distinto de: <select id="cola-g" onchange="regrupar()"></select> <button class="b g" onclick="registrarCola()">Registrar todas</button> <button class="b n" onclick="vaciarCola()">Vaciar todo</button></div>
+<small>Edita lo que necesites en cada fila. Solo se registran las filas con "Registrar" marcado; las que parecen gastos, abonos o créditos vienen desmarcadas.</small>
+<div id="cola-t"></div></div></div>
 <div class="sec" id="s-inventario"><div class="card">
 <select id="fest" onchange="rf()"><option value="">Todos los estados</option><option value="disponible">Disponible</option><option value="sucia">Sucio</option><option value="vendida">Vendido</option><option value="credito">Crédito</option><option value="separe">Plan separe</option></select> <button class="b n" onclick="limpiarFiltros()">Limpiar filtros</button><br>
 <button class="b g" onclick="exportar('inv')">Descargar Excel</button> <span id="cnt"></span> <b class="mcnt" style="color:#5b2a86;margin-left:10px"></b></div>
@@ -199,18 +203,40 @@ function editar(id){const p=inv[id];$('rid').value=id;$('rcat').value=p.categori
 function guardar(e){e.preventDefault();hacerGuardar(false)}
 function registrar(){if(!document.querySelector('#s-registro form').reportValidity())return;hacerGuardar(true)}
 function datosForm(){return{categoria:$('rcat').value,referencia:$('rref').value.trim(),nombre:$('rnom').value.trim(),color:$('rcol').value.trim(),marca:$('rmar').value.trim(),talla:$('rtal').value.trim(),precio:parseFloat($('rpre').value),estado:$('rest').value,marcado:$('rmarc').checked}}
-let cola=[];
-function rCola(){const t=cola.reduce((a,r)=>a+r.cant,0);$('cola-card').style.display=cola.length?'block':'none';$('cola-n').textContent='('+cola.length+' filas · '+t+' unidades)';
-$('cola-t').innerHTML=cola.slice(0,200).map((r,i)=>`<tr><td>${i+1}</td><td>${CATS[r.categoria]||''}</td><td>${esc(r.referencia)}</td><td>${esc(r.nombre)}</td><td>${esc(r.color)}</td><td>${esc(r.marca)}</td><td>${esc(r.talla)}</td><td>${fmt(r.precio)}</td><td>${EST[r.estado]||''}</td><td>${r.cant}</td><td><button class="b r" onclick="quitarCola(${i})">Quitar</button></td></tr>`).join('')+(cola.length>200?`<tr><td colspan="11">… y ${cola.length-200} filas más (se registrarán igual)</td></tr>`:'')}
-function quitarCola(i){cola.splice(i,1);rCola()}
-function vaciarCola(){if(cola.length&&!confirm('¿Vaciar la lista sin registrar?'))return;cola=[];rCola();$('regMsg').textContent=''}
+let cola=[],colaCols=[],cg='',cid=0,GR=[],ab=new Set();
+const CATOPT=Object.fromEntries(Object.keys(CATS).map(c=>[c,Object.entries(CATS).map(([k,v])=>`<option value="${k}"${k==c?' selected':''}>${v}</option>`).join('')])),
+CATALL=Object.entries(CATS).map(([k,v])=>`<option value="${k}">${v}</option>`).join(''),
+ESTCOLA={disponible:'Disponible',sucia:'Sucio',vef:'Vendido · Efectivo',vtr:'Vendido · Transferencia'},
+ESTCOPT=Object.fromEntries(Object.keys(ESTCOLA).map(c=>[c,Object.entries(ESTCOLA).map(([k,v])=>`<option value="${k}"${k==c?' selected':''}>${v}</option>`).join('')]));
+function grupoDe(r){if(!cg)return 'Todas las filas';const v=r.raw[cg];return v===undefined||v===''?'(sin '+cg+')':String(v)}
+const filaCola=r=>`<tr${r.inc?'':' style="opacity:.55"'}><td><input type="checkbox" ${r.inc?'checked':''} onchange="ec(${r.id},'inc',this.checked)"></td><td><input type="date" value="${esc(r.fecha)}" onchange="ec(${r.id},'fecha',this.value)"></td><td><select onchange="ec(${r.id},'categoria',this.value)">${CATOPT[r.categoria]||CATOPT.dama}</select></td><td><input value="${esc(r.referencia)}" onchange="ec(${r.id},'referencia',this.value)" style="width:110px"></td><td><input value="${esc(r.nombre)}" onchange="ec(${r.id},'nombre',this.value)" style="min-width:210px"></td><td><input value="${esc(r.color)}" onchange="ec(${r.id},'color',this.value)" style="width:90px"></td><td><input value="${esc(r.marca)}" onchange="ec(${r.id},'marca',this.value)" style="width:100px"></td><td><input value="${esc(r.talla)}" onchange="ec(${r.id},'talla',this.value)" style="width:80px"></td><td><input type="number" value="${r.precio}" onchange="ec(${r.id},'precio',this.value)" style="width:100px"></td><td><select onchange="ec(${r.id},'estado',this.value)">${ESTCOPT[r.estado]||ESTCOPT.disponible}</select></td><td><button class="b r" onclick="quitarFila(${r.id})">Quitar</button></td></tr>`;
+function rCola(){$('cola-card').style.display=cola.length?'block':'none';if(!cola.length)return;
+$('cola-g').innerHTML='<option value="">Sin agrupar (una sola tablita)</option>'+colaCols.map(c=>`<option value="${esc(c)}"${c==cg?' selected':''}>${esc(c)}</option>`).join('');
+const M=new Map();cola.forEach(r=>{const k=grupoDe(r);if(!M.has(k))M.set(k,[]);M.get(k).push(r)});GR=[...M.keys()];
+$('cola-n').textContent='('+cola.length+' filas · '+cola.filter(r=>r.inc).length+' para registrar · '+GR.length+(GR.length==1?' tablita)':' tablitas)');
+$('cola-t').innerHTML=GR.map((k,i)=>{const R=M.get(k);return `<details class="tablita card" style="margin-top:10px"${ab.has(k)||GR.length==1?' open':''} ontoggle="tg(${i},this.open)"><summary><b>${cg?esc(cg)+': ':''}${esc(k)}</b> <small>(${R.length} filas · ${R.filter(r=>r.inc).length} para registrar)</small></summary>
+<div style="margin:8px 0">Categoría de toda la tablita: <select onchange="catGrupo(${i},this.value)"><option value="">—</option>${CATALL}</select> <button class="b g" onclick="registrarGrupo(${i})">Registrar esta tablita</button> <button class="b r" onclick="quitarGrupo(${i})">Quitar tablita</button></div>
+<div class="scroll"><table><thead><tr><th>Registrar</th><th>Fecha</th><th>Categoría</th><th>Ref</th><th>Nombre</th><th>Color/Sabor</th><th>Marca</th><th>Talla</th><th>Precio</th><th>Estado</th><th></th></tr></thead><tbody>${R.map(filaCola).join('')}</tbody></table></div></details>`}).join('')}
+function tg(i,o){if(GR[i]===undefined)return;if(o)ab.add(GR[i]);else ab.delete(GR[i])}
+function regrupar(){cg=$('cola-g').value;rCola()}
+function ec(id,c,v){const r=cola.find(x=>x.id==id);if(!r)return;if(c=='precio')r.precio=parseFloat(v)||0;else if(c=='inc'){r.inc=!!v;rCola()}else r[c]=typeof v=='string'?v.trim():v;if(c=='estado'&&(v=='vef'||v=='vtr')&&!r.fecha)r.fecha=hoy}
+function quitarFila(id){cola=cola.filter(x=>x.id!=id);rCola()}
+function quitarGrupo(i){const k=GR[i];if(k===undefined||!confirm('¿Quitar esta tablita sin registrarla?'))return;cola=cola.filter(r=>grupoDe(r)!=k);ab.delete(k);rCola()}
+function catGrupo(i,v){if(!v)return;const k=GR[i];cola.forEach(r=>{if(grupoDe(r)==k)r.categoria=v});rCola()}
+function vaciarCola(){if(cola.length&&!confirm('¿Vaciar todas las tablitas sin registrar?'))return;cola=[];colaCols=[];cg='';ab.clear();rCola();$('regMsg').textContent=''}
 function agregarCola(){if(!document.querySelector('#s-registro form').reportValidity())return;const o=datosForm();if(o.estado=='vendida')return alert('Para la lista deja el estado en Disponible o Sucio');
-cola.push({...o,codigo:'',cant:Math.max(1,Math.min(200,parseInt($('rcan').value)||1))});const cat=o.categoria;limpiar();$('rcat').value=cat;etiquetas();rCola();$('rref').focus()}
-function registrarCola(){if(!cola.length)return;const used=new Set(Object.values(inv).map(p=>String(p&&p.codigo||''))),fijo=new Set(),lote={};let tot=0;
-cola.forEach(r=>{r.f=false;if(r.codigo&&r.cant==1&&!used.has(r.codigo)&&!fijo.has(r.codigo)){fijo.add(r.codigo);r.f=true}});
+cola.push({...o,id:++cid,inc:true,codigo:'',fecha:'',raw:{}});const cat=o.categoria;limpiar();$('rcat').value=cat;etiquetas();rCola();$('rref').focus()}
+function registrarGrupo(i){const k=GR[i];if(k!==undefined)registrarFilas(cola.filter(r=>r.inc&&grupoDe(r)==k))}
+function registrarCola(){registrarFilas(cola.filter(r=>r.inc))}
+function registrarFilas(rows){if(!rows.length)return alert('No hay filas marcadas para registrar');
+const bad=rows.filter(r=>!(r.precio>=0)||(!r.nombre&&!r.referencia)),ok=rows.filter(r=>!bad.includes(r));if(!ok.length)return alert('Las filas marcadas tienen precio negativo o no tienen nombre ni referencia. Corrígelas o desmárcalas.');
+const used=new Set(Object.values(inv).map(p=>String(p&&p.codigo||''))),fijo=new Set(),lote={};
+ok.forEach(r=>{r.f=false;if(r.codigo&&!used.has(r.codigo)&&!fijo.has(r.codigo)){fijo.add(r.codigo);r.f=true}});
 const nuevo=()=>{let c;do{c=sigCodigo()}while(used.has(c)||fijo.has(c));used.add(c);return c};
-cola.forEach(r=>{for(let i=0;i<r.cant;i++){const k=push(dbr('inventario')).key,cod=r.f?r.codigo:nuevo();lote[k]={categoria:r.categoria,codigo:cod,referencia:r.referencia,nombre:r.nombre,color:r.color,marca:r.marca,talla:r.talla,precio:r.precio,estado:r.estado,marcado:!!r.marcado,tipoPago:'inmediato',pagos:[]};tot++}});
-upd(dbr('inventario'),lote);cola=[];rCola();$('regMsg').textContent='Registrados '+tot+' productos';setTimeout(()=>$('regMsg').textContent='',6000)}
+ok.forEach(r=>{const k=push(dbr('inventario')).key,v=r.estado=='vef'||r.estado=='vtr',f=r.fecha||hoy,o={categoria:r.categoria,codigo:r.f?r.codigo:nuevo(),referencia:r.referencia,nombre:r.nombre,color:r.color,marca:r.marca,talla:r.talla,precio:r.precio,estado:v?'vendida':r.estado,marcado:false,tipoPago:'inmediato',pagos:[]};
+if(v){o.fechaVenta=f;o.pagos=[{monto:r.precio,fecha:f,medioPago:r.estado=='vef'?'efectivo':'transaccion',tipoPago:'inmediato',cuotaNum:1}]}lote[k]=o});
+upd(dbr('inventario'),lote);const ids=new Set(ok.map(r=>r.id));cola=cola.filter(r=>!ids.has(r.id));rCola();
+$('regMsg').textContent='Registrados '+ok.length+' productos'+(bad.length?' ('+bad.length+' filas con datos incompletos se dejaron en la tablita)':'');setTimeout(()=>$('regMsg').textContent='',7000)}
 function hacerGuardar(nuevo){const id=nuevo?'':$('rid').value,o=datosForm(),cat=o.categoria;let cod='',n=1;
 let quiere=o.estado=='vendida';
 if(id){const ab=suma(pg(inv[id]),()=>1);if(o.precio<ab)return alert('El precio no puede ser menor a lo ya abonado ('+fmt(ab)+')');
@@ -285,12 +311,20 @@ if(t=='compras')xl('compras_'+m,{Transacciones:vr.filter(x=>x.Medio=='transaccio
 if(t=='total'){const e=suma(P.filter(im),x=>x.medioPago=='efectivo'),tt=suma(P.filter(im),x=>x.medioPago=='transaccion'),r=suma(Rc,im),c=suma(Rp,im);xl('total_'+m,{Total:[{Concepto:'Efectivo',Valor:e},{Concepto:'Transacciones',Valor:tt},{Concepto:'Retiros (caja)',Valor:r},{Concepto:'Compra de mercancía',Valor:c},{Concepto:'Total del mes',Valor:e+tt-r-c}]})}}
 function importar(ev){const f=ev.target.files[0];if(!f)return;ev.target.value='';$('regMsg').textContent='Leyendo Excel...';
 cargarXLSX().then(()=>{const rd=new FileReader();rd.onload=x=>setTimeout(()=>{try{const wb=XLSX.read(x.target.result,{type:'array'}),kc=t=>Object.keys(CATS).find(k=>CATS[k].toLowerCase()==String(t).toLowerCase());let n=0;
-const nk=t=>String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
-wb.SheetNames.forEach(sn=>XLSX.utils.sheet_to_json(wb.Sheets[sn]).forEach(o=>{const N={};Object.keys(o).forEach(k=>N[nk(k)]=o[k]);const g=(...a)=>{for(const k of a){const v=N[nk(k)];if(v!==undefined&&String(v).trim()!=='')return String(v).trim()}return ''};
-if(!g('Referencia','Ref','Referencias','Reference')&&!g('Nombre','Producto','Descripcion'))return;
-cola.push({categoria:kc(g('Categoría','Categoria'))||kc(sn)||'dama',codigo:g('Código','Codigo'),referencia:g('Referencia','Ref','Referencias','Reference'),nombre:g('Nombre','Producto','Descripcion'),color:g('Color/Sabor','Color','Sabor'),marca:g('Marca'),talla:g('Talla/Detalle','Talla','Detalle'),precio:parseFloat(g('Precio','Valor'))||0,estado:g('Estado').toLowerCase()=='sucia'?'sucia':'disponible',cant:Math.max(1,Math.min(200,parseInt(g('Cantidad','Cant'))||1)),marcado:false});n++}));
-rCola();$('regMsg').textContent=n?n+' filas cargadas a la lista. Revísalas y pulsa "Registrar todos".':'';if(!n)alert('No se encontraron productos en el Excel')}catch(e){$('regMsg').textContent='';alert('No se pudo leer el Excel: '+(e.message||e))}},30);rd.readAsArrayBuffer(f)}).catch(e=>{$('regMsg').textContent='';alert(e.message||e)})}
+const nk=t=>String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''),z=q=>String(q).padStart(2,'0'),
+iso=v=>{if(typeof v=='number'&&v>20000&&v<80000){const d=XLSX.SSF.parse_date_code(v);return d.y+'-'+z(d.m)+'-'+z(d.d)}const t=String(v??'').trim();let m=t.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return m[1]+'-'+z(m[2])+'-'+z(m[3]);m=t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);return m?(m[3].length==2?'20'+m[3]:m[3])+'-'+z(m[2])+'-'+z(m[1]):''},
+adivina=t=>{t=nk(t);return /ni(n|ñ)o|nina|infantil/.test(t)?'ninos':/dama|mujer|blusa|brasier/.test(t)?'dama':/hombre|caballero|boxer/.test(t)?'caballero':/chancla|zapato|tenis|sandalia|calzado/.test(t)?'calzado':/locion|perfume/.test(t)?'perfumes':/helado|paleta|galleta|turron/.test(t)?'helados':''};
+if(!colaCols.includes('Hoja'))colaCols.push('Hoja');
+wb.SheetNames.forEach(sn=>XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:''}).forEach(o=>{const raw={Hoja:sn},N={};Object.keys(o).forEach(k=>{const kt=String(k).trim();if(!kt)return;let v=o[k];if(nk(kt).startsWith('fecha'))v=iso(v)||String(v).trim();raw[kt]=String(v).trim();N[nk(k)]=v;if(!colaCols.includes(kt))colaCols.push(kt)});
+const g=(...a)=>{for(const k of a){const v=N[nk(k)];if(v!==undefined&&String(v).trim()!=='')return String(v).trim()}return ''};
+const nombre=g('Nombre','Producto','Descripcion'),ref=g('Referencia','Ref','Referencias','Reference');if(!nombre&&!ref)return;
+const precio=parseFloat(g('Precio','Valor'))||0,met=g('Método de Pago','Metodo de Pago','Metodo','Medio de pago','Medio'),fecha=iso(g('Fecha')),
+est=g('Estado').toLowerCase()=='sucia'?'sucia':precio>0&&/efectivo/i.test(met)?'vef':precio>0&&/transfer|transac/i.test(met)?'vtr':'disponible',
+noProd=precio<=0||/gasto|salida|devoluci|cr[eé]dito|d\.\s*urm/i.test(met)||/^\s*(sale|abona|abono|cancela|debe|devoluci)/i.test(nombre);
+cola.push({id:++cid,inc:!noProd,fecha,categoria:kc(g('Categoría','Categoria'))||kc(sn)||adivina(nombre)||$('rcat').value,codigo:g('Código','Codigo'),referencia:ref,nombre,color:g('Color/Sabor','Color','Sabor'),marca:g('Marca'),talla:g('Talla/Detalle','Talla','Detalle'),precio,estado:est,raw});n++}));
+if(!cg){const c=colaCols.find(c=>nk(c).startsWith('fecha'));if(c)cg=c}
+rCola();$('regMsg').textContent=n?n+' filas cargadas en tablitas. Revísalas, edítalas y pulsa "Registrar".':'';if(!n)alert('No se encontraron productos en el Excel')}catch(e){$('regMsg').textContent='';alert('No se pudo leer el Excel: '+(e.message||e))}},30);rd.readAsArrayBuffer(f)}).catch(e=>{$('regMsg').textContent='';alert(e.message||e)})}
 
-Object.assign(window,{render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,desmarcarTodo,estado,borrar,etiquetas,limpiar,editar,guardar,registrar,agregarCola,registrarCola,vaciarCola,quitarCola,masFilas,rf,verCliente,editarCliente,guardarEdCliente,cerrarE,abrirVenta,vender,cerrarV,addCliente,selCliente,delCliente,cpSel,ctipoCh,addCompra,delCompra,abrirAbono,guardarAbono,delAbono,fIn,fOpen,fCerrar,cerrar,guardarBase,addRet,delRet,exportar,importar,limpiarFiltros});
+Object.assign(window,{render,entrar,tab,activarAdmin,cambiarClave,borrarTodo,marcar,desmarcarTodo,estado,borrar,etiquetas,limpiar,editar,guardar,registrar,agregarCola,registrarCola,vaciarCola,registrarGrupo,quitarGrupo,quitarFila,catGrupo,regrupar,ec,tg,masFilas,rf,verCliente,editarCliente,guardarEdCliente,cerrarE,abrirVenta,vender,cerrarV,addCliente,selCliente,delCliente,cpSel,ctipoCh,addCompra,delCompra,abrirAbono,guardarAbono,delAbono,fIn,fOpen,fCerrar,cerrar,guardarBase,addRet,delRet,exportar,importar,limpiarFiltros});
 window.appListo=true;render();
 </script></body></html>
